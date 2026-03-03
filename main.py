@@ -1,54 +1,34 @@
-import pandas as pd
 import os
+from dotenv import load_dotenv
+from modules.data_processor import get_weekly_data
+from modules.pdf_generator import create_pdf_report
 
-# 1. Configurações Iniciais
-arquivo_excel = "Controle Km e Horímetro_março26.xlsx"
-aba_desejada = "01 A 08.03"  # Nome exato da aba dentro do Excel
+load_dotenv()
 
-def gerar_relatorio_semanal(caminho, aba):
-    if not os.path.exists(caminho):
-        print(f"Erro: O arquivo '{caminho}' não foi encontrado na pasta.")
+def main():
+    input_folder = os.getenv("INPUT_FOLDER", "inputs")
+    output_folder = os.getenv("OUTPUT_FOLDER", "outputs")
+    filename = os.getenv("EXCEL_FILENAME") 
+    sheet_name = os.getenv("SELECTED_SHEET")
+
+    excel_path = os.path.join(input_folder, filename)
+
+    print(f"\n>>> SYSTEM STARTED: InsightFlow")
+    
+    if not os.path.exists(excel_path):
+        print(f"ERROR: File '{filename}' not found.")
         return
 
-    try:
-        # Lendo o Excel 
-        # header=4 diz ao pandas que o cabeçalho real (MÁQUINA, OPERADOR...) está na linha 5
-        df = pd.read_excel(caminho, sheet_name=aba, header=4)
+    print(f"[*] Extracting all 42 frotas from: {sheet_name}")
+    data = get_weekly_data(excel_path, sheet_name)
 
-        # Limpeza: remove linhas onde a coluna 'MÁQUINA' está vazia
-        df = df.dropna(subset=[df.columns[1]])
+    if not data:
+        print("[-] No valid data found.")
+        return
 
-        print(f"\n{'='*60}")
-        print(f"RELATÓRIO SEMANAL: {aba}")
-        print(f"{'='*60}")
-        print(f"{'MÁQUINA':<15} | {'OPERADOR':<20} | {'TOTAL HORAS':<10}")
-        print("-" * 60)
+    print(f"[+] Concatenating names and generating PDF...")
+    pdf_file = create_pdf_report(data, sheet_name, output_folder)
+    print(f"SUCCESS: Integrated report generated at {pdf_file}\n")
 
-        total_da_semana = 0
-
-        for index, row in df.iterrows():
-            maquina = str(row.iloc[1])    # Coluna B (MÁQUINA)
-            operador = str(row.iloc[4])   # Coluna E (OPERADOR)
-            # A última coluna é o 'TOTAL HORAS TRABALHADAS'
-            total_horas = row.iloc[-1] 
-            
-            try:
-                # Trata o valor para garantir que seja um número somável
-                valor = float(total_horas) if pd.notnull(total_horas) else 0.0
-            except:
-                valor = 0.0
-
-            if valor != 0:
-                print(f"{maquina:<15} | {operador:<20} | {valor:<10.2f}")
-                total_da_semana += valor
-
-        print("-" * 60)
-        print(f"{'TOTAL GERAL DA SEMANA:':<38} {total_da_semana:.2f} Horas")
-        print(f"{'='*60}\n")
-
-    except Exception as e:
-        print(f"Erro ao ler a aba '{aba}': {e}")
-        print("Verifique se o nome da aba está correto no Excel.")
-
-# Executar
-gerar_relatorio_semanal(arquivo_excel, aba_desejada)
+if __name__ == "__main__":
+    main()
