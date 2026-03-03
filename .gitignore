@@ -38,5 +38,5 @@ relatorios/
 *.log
 
 # Arquivos gerados
-files/
 assets/
+data/
