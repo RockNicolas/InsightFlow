@@ -1,0 +1,41 @@
+# =========================
+# Ambiente
+# =========================
+.env
+.venv
+venv/
+env/
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# =========================
+# IDE / Editor
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# Sistema operacional
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Relatórios gerados
+# (opcional — se não quiser subir PDFs)
+# =========================
+relatorios/
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# Arquivos gerados
+arquivos/
