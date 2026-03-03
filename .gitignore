@@ -39,4 +39,5 @@ relatorios/
 
 # Arquivos gerados
 assets/
-data/
+outputs/
+inputs/
