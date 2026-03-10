@@ -50,7 +50,7 @@ def create_pdf_report(data, sheet_name, output_path):
     total_km_acumulado = 0
     
     locs_hora = ["LOC 01", "LOC 02", "LOC 05", "LOC 08"]
-    lista_vermelha = ["MC 01", "MC 13", "MOBI - LOCADO"] + locs_hora
+    lista_vermelha = ["MC 01", "MC 13"] + locs_hora
 
     for item in data:
         m_upper = item['machine'].upper()
