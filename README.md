@@ -33,6 +33,7 @@ InsightFlow/
 ├── modules/
 │   ├── data_processor.py # Lógica de extração e limpeza de dados
 │   └── pdf_generator.py  # Design e geração do layout do PDF
+    └── observation_report.py  # Design e geração do layout do relatorio de anotações
 ├── inputs/              # Pasta para colocar as folhas de cálculo Excel
 └── outputs/             # Pasta onde os relatórios gerados são guardados
 ```
