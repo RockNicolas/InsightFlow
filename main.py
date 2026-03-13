@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from modules.data_processor import get_weekly_data
 from modules.pdf_generator import create_pdf_report
-from modules.observation_report import create_observation_report # Novo módulo
+from modules.observation_report import create_observation_report 
 
 load_dotenv()
 
@@ -10,8 +10,6 @@ def main():
     input_folder = os.getenv("INPUT_FOLDER", "inputs")
     output_folder = os.getenv("OUTPUT_FOLDER", "outputs")
     filename = os.getenv("EXCEL_FILENAME") 
-    
-    # 1. Pegamos os nomes das abas separadamente
     sheet_weekly = os.getenv("SELECTED_SHEET")
     sheet_obs = os.getenv("ABA_OBSERVACOES")
 
@@ -22,9 +20,6 @@ def main():
     if not os.path.exists(excel_path):
         print(f"ERROR: File '{filename}' not found.")
         return
-
-    # --- PROCESSO 1: DADOS SEMANAIS (VERTICAL) ---
-    # Usamos o sheet_weekly aqui!
     if sheet_weekly:
         print(f"[*] Extracting frotas from: {sheet_weekly}")
         data = get_weekly_data(excel_path, sheet_weekly)
@@ -32,8 +27,6 @@ def main():
             pdf_weekly = create_pdf_report(data, sheet_weekly, output_folder)
             print(f"SUCCESS: Weekly report generated: {pdf_weekly}")
 
-    # --- PROCESSO 2: OBSERVAÇÕES (HORIZONTAL) ---
-    # Usamos o sheet_obs aqui!
     if sheet_obs:
         print(f"\n[*] Processing Observations from: {sheet_obs}")
         pdf_obs = create_observation_report(excel_path, sheet_obs, output_folder)
