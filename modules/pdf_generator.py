@@ -20,6 +20,24 @@ def format_value(machine_name, value, locs_permitidas):
     else:
         return f"{int(value)} KM"
 
+def format_final_meter(machine_name, value, locs_permitidas):
+    """Formata leitura final de horimetro/km."""
+    m_upper = machine_name.upper()
+
+    if value is None:
+        return "-"
+
+    # Retroescavadeiras exibem sem ponto de milhar.
+    if "RETROESCAVADEIRA" in m_upper or "RETRO" in m_upper:
+        return f"{value:.1f}".replace(".", ",")
+
+    is_loc_hora = any(loc in m_upper for loc in locs_permitidas)
+    is_mc = "MC" in m_upper
+
+    if is_mc or is_loc_hora:
+        return f"{value:,.1f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"{int(value):,}".replace(",", ".")
+
 def create_pdf_report(data, sheet_name, output_path):
     if not os.path.exists(output_path):
         os.makedirs(output_path)
@@ -40,9 +58,10 @@ def create_pdf_report(data, sheet_name, output_path):
 
     pdf.set_font("Arial", "B", 10)
     pdf.set_fill_color(220, 220, 220)
-    pdf.cell(85, 10, "MÁQUINA / PLACA", 1, 0, 'C', True)
-    pdf.cell(65, 10, "OPERADORES", 1, 0, 'C', True)
-    pdf.cell(40, 10, "PRODUÇÃO", 1, 1, 'C', True)
+    pdf.cell(70, 10, "MÁQUINA / PLACA", 1, 0, 'C', True)
+    pdf.cell(50, 10, "OPERADORES", 1, 0, 'C', True)
+    pdf.cell(35, 10, "PRODUÇÃO", 1, 0, 'C', True)
+    pdf.cell(35, 10, "HORI SEMANAL", 1, 1, 'C', True)
     
     pdf.set_font("Arial", "", 9)
 
@@ -71,10 +90,12 @@ def create_pdf_report(data, sheet_name, output_path):
             pdf.set_font("Arial", "", 9)
 
         valor_formatado = format_value(item['machine'], item['hours'], locs_hora)
+        final_formatado = format_final_meter(item['machine'], item.get('final_meter'), locs_hora)
 
-        pdf.cell(85, 10, str(item['machine'])[:45], 1)
-        pdf.cell(65, 10, str(item['operator'])[:35], 1)
-        pdf.cell(40, 10, valor_formatado, 1, 1, 'R')
+        pdf.cell(70, 10, str(item['machine'])[:37], 1)
+        pdf.cell(50, 10, str(item['operator'])[:26], 1)
+        pdf.cell(35, 10, valor_formatado, 1, 0, 'R')
+        pdf.cell(35, 10, final_formatado, 1, 1, 'R')
 
     pdf.ln(2)
     pdf.set_text_color(0, 0, 0)
@@ -82,10 +103,10 @@ def create_pdf_report(data, sheet_name, output_path):
     pdf.set_fill_color(240, 240, 240)
 
     total_h_string = format_value("TOTAL HORAS", total_horas_decimal, ["TOTAL"])
-    pdf.cell(150, 10, "TOTAL GERAL DE HORAS (MÁQUINAS)", 1, 0, 'L', True)
+    pdf.cell(155, 10, "TOTAL GERAL DE HORAS (MÁQUINAS)", 1, 0, 'L', True)
     pdf.cell(40, 10, total_h_string, 1, 1, 'R', True)
 
-    pdf.cell(150, 10, "TOTAL GERAL DE KM (VEÍCULOS E APOIO)", 1, 0, 'L', True)
+    pdf.cell(155, 10, "TOTAL GERAL DE KM (VEÍCULOS E APOIO)", 1, 0, 'L', True)
     pdf.cell(40, 10, f"{int(total_km_acumulado)} KM", 1, 1, 'R', True)
     
     filename = f"Report_{sheet_name.replace(' ', '_')}.pdf"
