@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>InsightFlow Web</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v=asset_version) }}">
 </head>
 <body>
     <main class="page">
@@ -130,20 +130,36 @@
                                 <span class="label">Relatórios</span>
                                 <div class="options">
                                     <label class="checkbox">
-                                        <input type="checkbox" name="generate_weekly" checked>
-                                        <span>Gerar relatório semanal</span>
+                                        <input type="checkbox" name="generate_weekly">
+                                        <span class="checkbox-box" aria-hidden="true"></span>
+                                        <span class="checkbox-content">
+                                            <span class="checkbox-title">Gerar relatório semanal</span>
+                                            <span class="checkbox-description">Gera o PDF da aba semanal escolhida.</span>
+                                        </span>
                                     </label>
                                     <label class="checkbox">
-                                        <input type="checkbox" name="generate_observation" checked>
-                                        <span>Gerar relatório de observações</span>
+                                        <input type="checkbox" name="generate_observation">
+                                        <span class="checkbox-box" aria-hidden="true"></span>
+                                        <span class="checkbox-content">
+                                            <span class="checkbox-title">Gerar relatório de observações</span>
+                                            <span class="checkbox-description">Cria o PDF com os apontamentos e anotações.</span>
+                                        </span>
                                     </label>
                                     <label class="checkbox">
                                         <input type="checkbox" name="generate_monthly">
-                                        <span>Gerar relatório mensal</span>
+                                        <span class="checkbox-box" aria-hidden="true"></span>
+                                        <span class="checkbox-content">
+                                            <span class="checkbox-title">Gerar relatório mensal</span>
+                                            <span class="checkbox-description">Monta o resumo executivo do mês.</span>
+                                        </span>
                                     </label>
                                     <label class="checkbox">
-                                        <input type="checkbox" name="generate_all_month_sheets" {% if generate_all_month_sheets %}checked{% endif %}>
-                                        <span>Baixar todas as abas do mês</span>
+                                        <input type="checkbox" name="generate_all_month_sheets">
+                                        <span class="checkbox-box" aria-hidden="true"></span>
+                                        <span class="checkbox-content">
+                                            <span class="checkbox-title">Baixar todas as abas do mês</span>
+                                            <span class="checkbox-description">Gera um relatório semanal para cada aba encontrada.</span>
+                                        </span>
                                     </label>
                                 </div>
 

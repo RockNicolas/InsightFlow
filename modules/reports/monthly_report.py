@@ -6,10 +6,10 @@ from datetime import datetime
 import pandas as pd
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from modules.processors.data_processor import get_weekly_data
 
@@ -39,6 +39,7 @@ MONTH_LABELS = {
     "11": "NOVEMBRO",
     "12": "DEZEMBRO",
 }
+PAGE_SIZE = landscape(A4)
 
 LOCS_HORA = ["LOC 01", "LOC 02", "LOC 05", "LOC 08"]
 LISTA_VERMELHA = ["MC 01", "MC 13"] + LOCS_HORA
@@ -72,7 +73,7 @@ STYLE_CARD = ParagraphStyle(
     parent=STYLE_BODY,
     alignment=TA_CENTER,
     textColor=WHITE,
-    leading=16,
+    leading=10,
 )
 STYLE_TABLE_HEADER = ParagraphStyle(
     "table_header",
@@ -170,7 +171,7 @@ def _color_hex(color):
 
 def _draw_page_chrome(canvas, doc, period, gen_date, sheet_count):
     canvas.saveState()
-    page_w, page_h = A4
+    page_w, page_h = doc.pagesize
     header_h = 24 * mm
     footer_h = 11 * mm
     logo_path = os.path.join("assets", "company", "company_2.png")
@@ -209,30 +210,26 @@ def _draw_page_chrome(canvas, doc, period, gen_date, sheet_count):
 
 
 def _build_kpi_cards(doc_width, cards):
-    rows = []
+    row = []
     styles = []
-    idx = 0
-    for row_idx in range(2):
-        row = []
-        for col_idx in range(2):
-            label, value, bg = cards[idx]
-            row.append(Paragraph(
-                f'<font size="8" color="#DDE7F1">{label}</font><br/><font size="16"><b>{value}</b></font>',
-                STYLE_CARD,
-            ))
-            styles.append(("BACKGROUND", (col_idx, row_idx), (col_idx, row_idx), bg))
-            idx += 1
-        rows.append(row)
+    for col_idx, (label, value, bg) in enumerate(cards):
+        row.append(Paragraph(
+            f'<font size="6" color="#DDE7F1">{label}</font><br/><font size="11"><b>{value}</b></font>',
+            STYLE_CARD,
+        ))
+        styles.append(("BACKGROUND", (col_idx, 0), (col_idx, 0), bg))
 
-    table = Table(rows, colWidths=[doc_width / 2] * 2, rowHeights=[18 * mm, 18 * mm])
+    table = Table([row], colWidths=[doc_width / 4] * 4, rowHeights=[10.5 * mm])
     table.setStyle(TableStyle(
         styles + [
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
             ("BOX", (0, 0), (-1, -1), 0.5, WHITE),
-            ("INNERGRID", (0, 0), (-1, -1), 2, WHITE),
-            ("TOPPADDING", (0, 0), (-1, -1), 8),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ("INNERGRID", (0, 0), (-1, -1), 1.5, WHITE),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
         ]
     ))
     return table
@@ -327,9 +324,9 @@ def _build_rank_table(title, items, as_hours, accent_color, width, name_limit=28
 
 def _build_rank_grid(doc_width, machines, trucks, vehicles):
     rank_width = (doc_width - 12) / 3
-    machine_rank = _build_rank_table("Top 5 máquinas", machines, True, BLUE, rank_width, name_limit=18)
-    truck_rank = _build_rank_table("Top 5 caminhões", trucks, False, ORANGE, rank_width, name_limit=18)
-    vehicle_rank = _build_rank_table("Top 5 veículos", vehicles, False, GREEN, rank_width, name_limit=18)
+    machine_rank = _build_rank_table("Top 5 máquinas", machines, True, BLUE, rank_width, name_limit=22)
+    truck_rank = _build_rank_table("Top 5 caminhões", trucks, False, ORANGE, rank_width, name_limit=22)
+    vehicle_rank = _build_rank_table("Top 5 veículos", vehicles, False, GREEN, rank_width, name_limit=22)
 
     grid = Table(
         [[[machine_rank[0], machine_rank[1]], [truck_rank[0], truck_rank[1]], [vehicle_rank[0], vehicle_rank[1]]]],
@@ -367,49 +364,6 @@ def _build_highlights_table(doc_width, machines, trucks, vehicles):
         [doc_width * 0.28, doc_width * 0.72],
         BLUE,
     )
-
-
-def _build_detail_table(title, subtitle, items, weeks, as_hours, accent_color):
-    story = [Paragraph(title, STYLE_SECTION), Paragraph(subtitle, STYLE_MUTED), Spacer(1, 4 * mm)]
-
-    active_items = [item for item in items if item["hours"] > 0]
-    if not active_items:
-        empty = Table([[Paragraph("Sem dados disponíveis para esta categoria.", STYLE_MUTED)]], colWidths=[175 * mm])
-        empty.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), LIGHT_BG),
-            ("BOX", (0, 0), (-1, -1), 1, BORDER),
-            ("TOPPADDING", (0, 0), (-1, -1), 12),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
-            ("LEFTPADDING", (0, 0), (-1, -1), 10),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ]))
-        story.append(empty)
-        return story
-
-    rows = []
-    sorted_items = sorted(active_items, key=lambda item: item["hours"], reverse=True)
-    for idx, item in enumerate(sorted_items, start=1):
-        avg_value = item["hours"] / max(weeks, 1)
-        status = "Alerta" if _is_alert(item["display"], item["hours"]) else "OK"
-        status_color = RED if status == "Alerta" else GREEN
-        rows.append([
-            Paragraph(str(idx), STYLE_TABLE_CELL),
-            Paragraph(_truncate(item["display"], 34), STYLE_TABLE_CELL),
-            Paragraph(_truncate(item.get("operator") or "N/A", 18), STYLE_TABLE_CELL),
-            Paragraph(_fmt_metric(item["hours"], as_hours), STYLE_TABLE_CELL),
-            Paragraph(_fmt_metric(avg_value, as_hours), STYLE_TABLE_CELL),
-            Paragraph(f"{item.get('weeks_active', 0)}/{weeks}", STYLE_TABLE_CELL),
-            Paragraph(f'<font color="{_color_hex(status_color)}"><b>{status}</b></font>', STYLE_TABLE_CELL),
-        ])
-
-    table = _build_simple_table(
-        ["#", "Equipamento", "Operador", "Total", "Média/semana", "Semanas", "Status"],
-        rows,
-        [8 * mm, 58 * mm, 32 * mm, 22 * mm, 24 * mm, 18 * mm, 20 * mm],
-        accent_color,
-    )
-    story.append(table)
-    return story
 
 
 def create_monthly_report(excel_path, obs_sheet_name, output_folder, selected_sheets=None, weekly_data_loader=None):
@@ -513,11 +467,11 @@ def create_monthly_report(excel_path, obs_sheet_name, output_folder, selected_sh
     pdf_path = os.path.join(monthly_output_folder, f"Relatorio_Mensal_{month_label}.pdf")
     doc = SimpleDocTemplate(
         pdf_path,
-        pagesize=A4,
-        topMargin=32 * mm,
-        bottomMargin=16 * mm,
-        leftMargin=14 * mm,
-        rightMargin=14 * mm,
+        pagesize=PAGE_SIZE,
+        topMargin=28 * mm,
+        bottomMargin=14 * mm,
+        leftMargin=10 * mm,
+        rightMargin=10 * mm,
     )
 
     kpi_cards = [
@@ -533,12 +487,12 @@ def create_monthly_report(excel_path, obs_sheet_name, output_folder, selected_sh
             "Resumo mensal consolidado com foco nas semanas que realmente tiveram dados aproveitados pelo sistema.",
             STYLE_BODY,
         ),
-        Spacer(1, 5 * mm),
-        _build_kpi_cards(doc.width, kpi_cards),
-        Spacer(1, 5 * mm),
-        Paragraph("Semanas consideradas", STYLE_SECTION),
-        Paragraph("A tabela abaixo mostra exatamente quais abas foram lidas e quais delas contribuíram com dados válidos para o mensal.", STYLE_MUTED),
         Spacer(1, 3 * mm),
+        _build_kpi_cards(doc.width, kpi_cards),
+        Spacer(1, 3 * mm),
+        Paragraph("Semanas consideradas", STYLE_SECTION),
+    
+        Spacer(1, 2 * mm),
         _build_weeks_table(doc.width, sheet_stats),
         Spacer(1, 5 * mm),
         Paragraph("Destaques principais", STYLE_SECTION),
@@ -547,36 +501,6 @@ def create_monthly_report(excel_path, obs_sheet_name, output_folder, selected_sh
         Spacer(1, 5 * mm),
         _build_rank_grid(doc.width, machines, trucks, vehicles),
     ]
-
-    story.append(PageBreak())
-    story.extend(_build_detail_table(
-        "Máquinas e Equipamentos",
-        "Detalhamento mensal das máquinas com dados válidos.",
-        machines,
-        weeks,
-        True,
-        NAVY,
-    ))
-
-    story.append(PageBreak())
-    story.extend(_build_detail_table(
-        "Veículos e Apoio",
-        "Detalhamento mensal dos caminhões com dados válidos.",
-        trucks,
-        weeks,
-        False,
-        ORANGE,
-    ))
-
-    story.append(PageBreak())
-    story.extend(_build_detail_table(
-        "Veículos Leves e Apoio",
-        "Detalhamento mensal dos veículos leves com dados válidos.",
-        vehicles,
-        weeks,
-        False,
-        GREEN,
-    ))
 
     def on_page(canvas, document):
         _draw_page_chrome(canvas, document, period, gen_date, weeks)

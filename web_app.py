@@ -1,4 +1,5 @@
 import os
+import subprocess
 import tempfile
 import threading
 import webbrowser
@@ -17,9 +18,11 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_DIR = Path(tempfile.gettempdir()) / "insightflow_uploads"
 ALLOWED_EXTENSIONS = {".xlsx", ".xls", ".xlsm"}
+STARTUP_TOKEN = uuid4().hex
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "insightflow-local-web-ui")
+base_secret = os.getenv("FLASK_SECRET_KEY", "insightflow-local-web-ui")
+app.secret_key = f"{base_secret}:{STARTUP_TOKEN}"
 
 
 def _resolve_folder(path_value, default_name):
@@ -33,6 +36,47 @@ def _resolve_folder(path_value, default_name):
 
 def _output_folder():
     return _resolve_folder(os.getenv("OUTPUT_FOLDER", "outputs"), "outputs")
+
+
+def _open_url(url):
+    opera_candidates = []
+
+    opera_path = str(os.getenv("OPERA_PATH", "")).strip()
+    if opera_path:
+        opera_candidates.append(Path(opera_path))
+
+    local_app_data = os.getenv("LOCALAPPDATA")
+    program_files = os.getenv("PROGRAMFILES")
+    program_files_x86 = os.getenv("PROGRAMFILES(X86)")
+
+    if local_app_data:
+        opera_candidates.append(Path(local_app_data) / "Programs" / "Opera" / "opera.exe")
+    if program_files:
+        opera_candidates.append(Path(program_files) / "Opera" / "launcher.exe")
+    if program_files_x86:
+        opera_candidates.append(Path(program_files_x86) / "Opera" / "launcher.exe")
+
+    for candidate in opera_candidates:
+        if candidate.exists():
+            try:
+                subprocess.Popen([str(candidate), url])
+                return
+            except OSError:
+                pass
+
+    webbrowser.open(url)
+
+
+def _reset_runtime_state():
+    if not UPLOAD_DIR.exists():
+        return
+
+    for file_path in UPLOAD_DIR.rglob("*"):
+        if file_path.is_file():
+            try:
+                file_path.unlink()
+            except OSError:
+                pass
 
 
 def _ensure_output_structure():
@@ -122,6 +166,7 @@ def _page_context(results=None):
         "generate_all_month_sheets": session.get("generate_all_month_sheets", False),
         "results": results or [],
         "output_folder": str(_output_folder()),
+        "asset_version": STARTUP_TOKEN,
     }
 
 
@@ -286,11 +331,21 @@ def download_file(filename):
     return send_from_directory(_output_folder(), filename, as_attachment=False)
 
 
+@app.after_request
+def add_no_cache_headers(response):
+    if request.path == "/" or response.mimetype in {"text/html", "text/css", "application/javascript"}:
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
+
 def run_app(host="127.0.0.1", port=5000, open_browser=True):
+    _reset_runtime_state()
     _ensure_output_structure()
 
     if open_browser:
-        threading.Timer(1.0, lambda: webbrowser.open(f"http://{host}:{port}")).start()
+        threading.Timer(1.0, lambda: _open_url(f"http://{host}:{port}")).start()
 
     print("\n>>> SYSTEM STARTED: InsightFlow Web")
     print(f"[*] Interface disponível em: http://{host}:{port}")
