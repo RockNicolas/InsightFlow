@@ -280,7 +280,7 @@ def _build_pie_chart(machines, vehicles, width):
 
 
 # ── Ponto de entrada ─────────────────────────────────────────────────────────
-def create_monthly_report(excel_path, obs_sheet_name, output_folder, selected_sheets=None):
+def create_monthly_report(excel_path, obs_sheet_name, output_folder, selected_sheets=None, weekly_data_loader=None):
 	"""Gera um PDF mensal usando apenas as abas selecionadas."""
 	try:
 		xl = pd.ExcelFile(excel_path)
@@ -309,10 +309,11 @@ def create_monthly_report(excel_path, obs_sheet_name, output_folder, selected_sh
 
 	print(f"[*] Abas semanais: {valid_sheets}")
 
+	weekly_data_loader = weekly_data_loader or get_weekly_data
 	machine_totals = {}
 	for sheet in valid_sheets:
 		print(f"    -> Lendo: {sheet}")
-		for item in get_weekly_data(excel_path, sheet):
+		for item in weekly_data_loader(excel_path, sheet):
 			key = " ".join(item['machine'].upper().split())
 			if key not in machine_totals:
 				machine_totals[key] = {

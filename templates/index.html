@@ -13,13 +13,9 @@
                 <span class="eyebrow">InsightFlow</span>
                 <h1>Interface web para gerar relatórios</h1>
                 <p>
-                    Envie a planilha Excel, escolha as abas e gere os relatórios semanal,
-                    observações e mensal em um layout mais moderno.
+                    Envie a planilha Excel, visualize as abas encontradas e gere os relatórios
+                    semanal, observações e mensal em um layout mais amplo.
                 </p>
-            </div>
-            <div class="hero-note">
-                <strong>Saída dos PDFs</strong>
-                <span>{{ output_folder }}</span>
             </div>
         </section>
 
@@ -33,102 +29,134 @@
             {% endif %}
         {% endwith %}
 
-        <section class="card">
-            <div class="card-header">
-                <h2>1. Carregar planilha</h2>
-                <p>O arquivo é enviado localmente e usado apenas para a geração dos relatórios.</p>
-            </div>
-
-            <form method="post" action="{{ url_for('load_sheets') }}" enctype="multipart/form-data" class="stack">
-                <label class="file-picker">
-                    <span>Escolher arquivo Excel</span>
-                    <input type="file" name="excel_file" accept=".xlsx,.xls,.xlsm" required>
-                </label>
-                <button type="submit" class="button primary">Carregar abas</button>
-            </form>
-
-            {% if uploaded_name %}
-                <div class="loaded-file">
-                    <span class="label">Arquivo atual</span>
-                    <strong>{{ uploaded_name }}</strong>
-                    {% if uploaded_path %}
-                        <small>{{ uploaded_path }}</small>
-                    {% endif %}
+        <section class="workspace">
+            <section class="card upload-card">
+                <div class="card-header">
+                    <h2>1. Carregar planilha</h2>
+                    <p>Escolha a frota correta e envie o Excel correspondente. Cada frota usa seu próprio fluxo de leitura.</p>
                 </div>
-            {% endif %}
-        </section>
 
-        <section class="card">
-            <div class="card-header">
-                <h2>2. Escolher abas e relatórios</h2>
-                <p>Selecione o que deseja gerar. O relatório mensal usa automaticamente todas as abas semanais do arquivo.</p>
-            </div>
-
-            {% if sheet_names %}
-                <div class="sheet-preview">
-                    <span class="label">Abas encontradas no arquivo</span>
-                    <div class="sheet-tags">
-                        {% for sheet in sheet_names %}
-                            <span class="sheet-tag {% if sheet == observation_sheet %}observation{% endif %}">
-                                {{ sheet }}
+                <form method="post" action="{{ url_for('load_sheets') }}" enctype="multipart/form-data" class="stack upload-form" id="upload-form">
+                    <label>
+                        <span>Frota</span>
+                        <select name="fleet_profile" id="fleet-profile">
+                            {% for profile in fleet_profiles %}
+                                <option value="{{ profile.key }}" {% if profile.key == selected_fleet_key %}selected{% endif %}>
+                                    {{ profile.label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <div class="file-picker">
+                        <span>Escolher arquivo Excel</span>
+                        <div class="file-picker-row">
+                            <input
+                                id="excel-file"
+                                class="file-input"
+                                type="file"
+                                name="excel_file"
+                                accept=".xlsx,.xls,.xlsm"
+                                required
+                            >
+                            <label for="excel-file" class="file-button">Escolher arquivo</label>
+                            <span class="file-name" id="file-name">
+                                {{ uploaded_name if uploaded_name else "Nenhum arquivo selecionado" }}
                             </span>
-                        {% endfor %}
+                        </div>
+                        <small class="upload-hint" id="upload-hint">
+                            Ao escolher o arquivo, as abas serao carregadas automaticamente.
+                        </small>
                     </div>
-                </div>
-
-                <form method="post" action="{{ url_for('generate_reports') }}" class="stack">
-                    <div class="grid">
-                        <label>
-                            <span>Aba semanal</span>
-                            <select name="weekly_sheet">
-                                <option value="">Selecione a aba semanal</option>
-                                {% for sheet in weekly_options %}
-                                    <option value="{{ sheet }}" {% if sheet == weekly_sheet %}selected{% endif %}>
-                                        {{ sheet }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </label>
-
-                        <label>
-                            <span>Aba de observações</span>
-                            <select name="observation_sheet">
-                                <option value="">Nenhuma</option>
-                                {% for sheet in sheet_names %}
-                                    <option value="{{ sheet }}" {% if sheet == observation_sheet %}selected{% endif %}>
-                                        {{ sheet }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </label>
-                    </div>
-
-                    <div class="options">
-                        <label class="checkbox">
-                            <input type="checkbox" name="generate_weekly" checked>
-                            <span>Gerar relatório semanal</span>
-                        </label>
-                        <label class="checkbox">
-                            <input type="checkbox" name="generate_observation" checked>
-                            <span>Gerar relatório de observações</span>
-                        </label>
-                        <label class="checkbox">
-                            <input type="checkbox" name="generate_monthly">
-                            <span>Gerar relatório mensal</span>
-                        </label>
-                        <label class="checkbox">
-                            <input type="checkbox" name="generate_all_month_sheets" {% if generate_all_month_sheets %}checked{% endif %}>
-                            <span>Baixar todas as abas do mês</span>
-                        </label>
-                    </div>
-
-                    <button type="submit" class="button primary">Gerar relatórios</button>
                 </form>
-            {% else %}
-                <div class="empty-state">
-                    <p>Carregue uma planilha para desbloquear a seleção das abas.</p>
+
+                {% if uploaded_name %}
+                    <div class="loaded-file">
+                        <span class="label">Arquivo atual</span>
+                        <strong>{{ selected_fleet_label }}</strong>
+                        <strong>{{ uploaded_name }}</strong>
+                    </div>
+                {% endif %}
+            </section>
+
+            <section class="card config-card">
+                <div class="card-header">
+                    <h2>2. Escolher abas e relatórios</h2>
+                    <p>{{ selected_fleet_label }} selecionada. O relatório mensal usa automaticamente todas as abas semanais do arquivo.</p>
                 </div>
-            {% endif %}
+
+                {% if sheet_names %}
+                    <div class="sheet-preview">
+                        <span class="label">Abas encontradas no arquivo</span>
+                        <div class="sheet-tags">
+                            {% for sheet in sheet_names %}
+                                <span class="sheet-tag {% if sheet == observation_sheet %}observation{% endif %}">
+                                    {{ sheet }}
+                                </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <form method="post" action="{{ url_for('generate_reports') }}" class="stack">
+                        <div class="form-layout">
+                            <div class="form-main">
+                                <div class="grid controls-grid">
+                                    <label>
+                                        <span>Aba semanal</span>
+                                        <select name="weekly_sheet">
+                                            <option value="">Selecione a aba semanal</option>
+                                            {% for sheet in weekly_options %}
+                                                <option value="{{ sheet }}" {% if sheet == weekly_sheet %}selected{% endif %}>
+                                                    {{ sheet }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </label>
+
+                                    <label>
+                                        <span>Aba de observações</span>
+                                        <select name="observation_sheet">
+                                            <option value="">Nenhuma</option>
+                                            {% for sheet in sheet_names %}
+                                                <option value="{{ sheet }}" {% if sheet == observation_sheet %}selected{% endif %}>
+                                                    {{ sheet }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <aside class="options-panel">
+                                <span class="label">Relatórios</span>
+                                <div class="options">
+                                    <label class="checkbox">
+                                        <input type="checkbox" name="generate_weekly" checked>
+                                        <span>Gerar relatório semanal</span>
+                                    </label>
+                                    <label class="checkbox">
+                                        <input type="checkbox" name="generate_observation" checked>
+                                        <span>Gerar relatório de observações</span>
+                                    </label>
+                                    <label class="checkbox">
+                                        <input type="checkbox" name="generate_monthly">
+                                        <span>Gerar relatório mensal</span>
+                                    </label>
+                                    <label class="checkbox">
+                                        <input type="checkbox" name="generate_all_month_sheets" {% if generate_all_month_sheets %}checked{% endif %}>
+                                        <span>Baixar todas as abas do mês</span>
+                                    </label>
+                                </div>
+
+                                <button type="submit" class="button primary">Gerar relatórios</button>
+                            </aside>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="empty-state">
+                        <p>Carregue uma planilha para desbloquear a seleção das abas.</p>
+                    </div>
+                {% endif %}
+            </section>
         </section>
 
         {% if results %}
@@ -143,7 +171,7 @@
                         <article class="result-card">
                             <span>{{ result.label }}</span>
                             <strong>{{ result.filename }}</strong>
-                            <a href="{{ url_for('download_file', filename=result.filename) }}" target="_blank" rel="noreferrer">
+                            <a href="{{ url_for('download_file', filename=result.download_path) }}" target="_blank" rel="noreferrer">
                                 Abrir PDF
                             </a>
                         </article>
@@ -152,5 +180,27 @@
             </section>
         {% endif %}
     </main>
+    <script>
+        const uploadForm = document.getElementById("upload-form");
+        const fileInput = document.getElementById("excel-file");
+        const fileName = document.getElementById("file-name");
+        const uploadHint = document.getElementById("upload-hint");
+
+        if (uploadForm && fileInput && fileName) {
+            fileInput.addEventListener("change", () => {
+                const selectedFile = fileInput.files && fileInput.files[0];
+                if (!selectedFile) {
+                    fileName.textContent = "Nenhum arquivo selecionado";
+                    return;
+                }
+
+                fileName.textContent = selectedFile.name;
+                if (uploadHint) {
+                    uploadHint.textContent = "Carregando abas...";
+                }
+                uploadForm.submit();
+            });
+        }
+    </script>
 </body>
 </html>

@@ -1,6 +1,5 @@
 import os
 import threading
-import unicodedata
 import webbrowser
 from pathlib import Path
 from uuid import uuid4
@@ -10,10 +9,7 @@ from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, send_from_directory, session, url_for
 from werkzeug.utils import secure_filename
 
-from modules.data_processor import get_weekly_data
-from modules.monthly_report import create_monthly_report
-from modules.observation_report import create_observation_report
-from modules.pdf_generator import create_pdf_report
+from modules.fleet_registry import DEFAULT_FLEET_KEY, get_fleet_profile, list_fleet_profiles
 
 load_dotenv()
 
@@ -38,25 +34,22 @@ def _output_folder():
     return _resolve_folder(os.getenv("OUTPUT_FOLDER", "outputs"), "outputs")
 
 
-def _upload_folder():
-    return _resolve_folder(UPLOAD_DIR, "uploads")
+def _active_profile():
+    return get_fleet_profile(session.get("fleet_profile", DEFAULT_FLEET_KEY))
+
+
+def _upload_folder(profile=None):
+    profile = profile or _active_profile()
+    return _resolve_folder(UPLOAD_DIR / profile.upload_subfolder, profile.upload_subfolder)
+
+
+def _profile_output_folder(profile=None):
+    profile = profile or _active_profile()
+    return _resolve_folder(_output_folder() / profile.output_subfolder, profile.output_subfolder)
 
 
 def _allowed_file(filename):
     return Path(filename).suffix.lower() in ALLOWED_EXTENSIONS
-
-
-def _normalize_text(value):
-    text = unicodedata.normalize("NFKD", str(value or "").upper())
-    return "".join(ch for ch in text if not unicodedata.combining(ch))
-
-
-def _detect_observation_sheet(sheet_names):
-    for sheet_name in sheet_names:
-        normalized = _normalize_text(sheet_name)
-        if "OBSERV" in normalized or "ANOTAC" in normalized:
-            return sheet_name
-    return ""
 
 
 def _load_sheet_names(excel_path):
@@ -75,6 +68,7 @@ def _valid_weekly_options(sheet_names, observation_sheet):
 
 
 def _page_context(results=None):
+    profile = _active_profile()
     excel_path = _session_excel_path()
     if excel_path:
         try:
@@ -86,7 +80,7 @@ def _page_context(results=None):
 
     observation_sheet = str(session.get("observation_sheet", "")).strip()
     if observation_sheet not in sheet_names:
-        observation_sheet = _detect_observation_sheet(sheet_names)
+        observation_sheet = profile.processor.detect_observation_sheet(sheet_names)
 
     weekly_options = _valid_weekly_options(sheet_names, observation_sheet)
     weekly_sheet = str(session.get("weekly_sheet", "")).strip()
@@ -96,6 +90,9 @@ def _page_context(results=None):
     return {
         "uploaded_name": session.get("uploaded_name", ""),
         "uploaded_path": excel_path,
+        "fleet_profiles": list_fleet_profiles(),
+        "selected_fleet_key": profile.key,
+        "selected_fleet_label": profile.label,
         "sheet_names": sheet_names,
         "weekly_options": weekly_options,
         "weekly_sheet": weekly_sheet,
@@ -113,6 +110,8 @@ def index():
 
 @app.post("/load-sheets")
 def load_sheets():
+    profile = get_fleet_profile(request.form.get("fleet_profile"))
+    session["fleet_profile"] = profile.key
     uploaded_file = request.files.get("excel_file")
     if not uploaded_file or not uploaded_file.filename:
         flash("Selecione um arquivo Excel para continuar.", "error")
@@ -122,7 +121,7 @@ def load_sheets():
         flash("Formato inválido. Use arquivos .xlsx, .xls ou .xlsm.", "error")
         return render_template("index.html", **_page_context())
 
-    upload_folder = _upload_folder()
+    upload_folder = _upload_folder(profile)
 
     previous_path = _session_excel_path()
     if previous_path:
@@ -146,15 +145,20 @@ def load_sheets():
     session["excel_path"] = str(saved_path)
     session["uploaded_name"] = uploaded_file.filename
     session["weekly_sheet"] = ""
-    session["observation_sheet"] = _detect_observation_sheet(sheet_names)
+    session["observation_sheet"] = profile.processor.detect_observation_sheet(sheet_names)
     session["generate_all_month_sheets"] = False
 
-    flash(f"Planilha carregada com sucesso: {uploaded_file.filename} ({len(sheet_names)} aba(s) encontrada(s)).", "success")
+    flash(
+        f"Planilha carregada com sucesso em {profile.label}: "
+        f"{uploaded_file.filename} ({len(sheet_names)} aba(s) encontrada(s)).",
+        "success",
+    )
     return redirect(url_for("index"))
 
 
 @app.post("/generate")
 def generate_reports():
+    profile = _active_profile()
     excel_path = _session_excel_path()
     if not excel_path:
         flash("Envie a planilha Excel antes de gerar os relatórios.", "error")
@@ -183,20 +187,24 @@ def generate_reports():
     session["observation_sheet"] = observation_sheet
     session["generate_all_month_sheets"] = generate_all_month_sheets
 
-    output_folder = _output_folder()
+    output_root = _output_folder()
+    output_folder = _profile_output_folder(profile)
     results = []
     generated_files = set()
 
     def add_result(label, file_path):
         filename = os.path.basename(file_path)
-        if filename in generated_files:
+        relative_path = os.path.relpath(file_path, output_root).replace("\\", "/")
+        dedupe_key = relative_path.lower()
+        if dedupe_key in generated_files:
             return
 
-        generated_files.add(filename)
+        generated_files.add(dedupe_key)
         results.append(
             {
                 "label": label,
                 "filename": filename,
+                "download_path": relative_path,
             }
         )
 
@@ -205,13 +213,12 @@ def generate_reports():
             flash("Escolha a aba semanal para gerar o relatório semanal.", "error")
             return render_template("index.html", **_page_context())
 
-        weekly_data = get_weekly_data(excel_path, weekly_sheet)
-        if not weekly_data:
+        weekly_pdf = profile.processor.create_weekly_report(excel_path, weekly_sheet, str(output_folder))
+        if not weekly_pdf:
             flash("Nenhum dado foi encontrado para a aba semanal selecionada.", "error")
             return render_template("index.html", **_page_context())
 
-        weekly_pdf = create_pdf_report(weekly_data, weekly_sheet, str(output_folder))
-        add_result("Relatorio semanal", weekly_pdf)
+        add_result(f"Relatorio semanal - {profile.label}", weekly_pdf)
 
     if generate_all_month_sheets:
         if not weekly_options:
@@ -219,26 +226,18 @@ def generate_reports():
             return render_template("index.html", **_page_context())
 
         for sheet_name in weekly_options:
-            weekly_data = get_weekly_data(excel_path, sheet_name)
-            if not weekly_data:
-                continue
-
-            weekly_pdf = create_pdf_report(weekly_data, sheet_name, str(output_folder))
-            add_result(f"Relatorio semanal - {sheet_name}", weekly_pdf)
+            weekly_pdf = profile.processor.create_weekly_report(excel_path, sheet_name, str(output_folder))
+            if weekly_pdf:
+                add_result(f"Relatorio semanal - {profile.label} - {sheet_name}", weekly_pdf)
 
     if generate_observation:
         if not observation_sheet:
             flash("Escolha a aba de observacoes para gerar esse relatório.", "error")
             return render_template("index.html", **_page_context())
 
-        observation_pdf = create_observation_report(excel_path, observation_sheet, str(output_folder))
+        observation_pdf = profile.processor.create_observation_report(excel_path, observation_sheet, str(output_folder))
         if observation_pdf:
-            results.append(
-                {
-                    "label": "Relatorio de observacoes",
-                    "filename": os.path.basename(observation_pdf),
-                }
-            )
+            add_result(f"Relatorio de observacoes - {profile.label}", observation_pdf)
         else:
             flash("Nao foi possivel gerar o relatório de observacoes.", "error")
             return render_template("index.html", **_page_context())
@@ -248,14 +247,14 @@ def generate_reports():
             flash("Nenhuma aba semanal foi encontrada para gerar o relatório mensal.", "error")
             return render_template("index.html", **_page_context())
 
-        monthly_pdf = create_monthly_report(
+        monthly_pdf = profile.processor.create_monthly_report(
             excel_path,
             observation_sheet or None,
             str(output_folder),
             selected_sheets=weekly_options,
         )
         if monthly_pdf:
-            add_result("Relatorio mensal", monthly_pdf)
+            add_result(f"Relatorio mensal - {profile.label}", monthly_pdf)
         else:
             flash("Nao foi possivel gerar o relatório mensal.", "error")
             return render_template("index.html", **_page_context())

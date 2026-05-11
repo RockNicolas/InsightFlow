@@ -9,12 +9,13 @@ O **InsightFlow** é uma ferramenta desenvolvida em Python para simplificar a ge
 - **Relatórios Customizados**: Gera PDFs com logótipo, tabelas formatadas e destaque visual (cor vermelha) para itens críticos ou de baixa produtividade.
 - **Interface Web Local**: Envie a planilha Excel, escolha as abas e gere os relatórios em uma interface moderna no navegador.
 - **Seleção Explícita**: O sistema não usa mais `EXCEL_FILENAME` nem `SELECTED_SHEET` no `.env`; a escolha do arquivo e das abas é feita na tela.
+- **Perfis de Frota**: `Saneamento` e `Itarema` agora têm fluxos separados, com uploads e saídas organizados por frota.
 
 ## ▶️ Como usar
 
 1. Execute `python main.py`
 2. Envie a planilha Excel na interface web
-3. Escolha a aba semanal, a aba de observações e as abas que entram no relatório mensal
+3. Escolha a frota correta, envie o Excel e selecione a aba semanal e a aba de observações
 4. Gere os relatórios desejados
 
 O `.env` agora é usado apenas para configurações da aplicação, como a pasta de saída `OUTPUT_FOLDER`.
@@ -43,12 +44,14 @@ InsightFlow/
         logo.png          # Logótipo da empresa para o relatório
 ├── modules/
 │   ├── data_processor.py # Lógica de extração e limpeza de dados
+│   ├── fleet_registry.py # Perfis de frota e roteamento
+│   ├── fleet_processors/ # Processadores separados por frota
 │   └── pdf_generator.py  # Design e geração do layout do PDF
     └── observation_report.py  # Design e geração do layout do relatorio de anotações
 ├── templates/           # Estrutura HTML da interface web
 ├── static/              # Estilos da interface web
-├── uploads/             # Planilhas enviadas pela interface web
-└── outputs/             # Pasta onde os relatórios gerados são guardados
+├── uploads/             # Planilhas enviadas pela interface web, separadas por frota
+└── outputs/             # Relatórios gerados, separados por frota
 ```
 
 AUTOR: Nicolas Rock
@@ -67,12 +70,13 @@ AUTOR: Nicolas Rock
 
 - **Local Web Interface**: Upload the Excel file, choose the sheets, and generate reports in a modern browser interface.
 - **Explicit Selection**: The app no longer uses `EXCEL_FILENAME` or `SELECTED_SHEET` in `.env`; file and sheet selection now happens in the UI.
+- **Fleet Profiles**: `Saneamento` and `Itarema` now have separate processing flows, with uploads and outputs organized by fleet.
 
 ## ▶️ How to use
 
 1. Run `python main.py`
 2. Upload the Excel workbook in the web interface
-3. Choose the weekly sheet, the observation sheet, and the sheets that should be included in the monthly report
+3. Choose the correct fleet, upload the workbook, and select the weekly and observation sheets
 4. Generate the reports you want
 
 The `.env` file is now used only for application settings, such as the output folder `OUTPUT_FOLDER`.
@@ -104,11 +108,13 @@ InsightFlow/
     logo.png # Company logo for the report
 ├── modules/
 │ ├── data_processor.py # Data extraction and cleaning logic
+│ ├── fleet_registry.py # Fleet profiles and routing
+│ ├── fleet_processors/ # Separate processors per fleet
 │ └── pdf_generator.py # PDF layout design and generation
 ├── templates/ # HTML for the web interface
 ├── static/ # Styles for the web interface
-├── uploads/ # Workbooks uploaded through the web interface
-└── outputs/ # Folder where generated reports are saved
+├── uploads/ # Workbooks uploaded through the web interface, split by fleet
+└── outputs/ # Generated reports, split by fleet
 ```
 
 AUTHOR: Nicolas Rock
