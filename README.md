@@ -9,7 +9,7 @@ O **InsightFlow** é uma ferramenta desenvolvida em Python para simplificar a ge
 - **Relatórios Customizados**: Gera PDFs com logótipo, tabelas formatadas e destaque visual (cor vermelha) para itens críticos ou de baixa produtividade.
 - **Interface Web Local**: Envie a planilha Excel, escolha as abas e gere os relatórios em uma interface moderna no navegador.
 - **Seleção Explícita**: O sistema não usa mais `EXCEL_FILENAME` nem `SELECTED_SHEET` no `.env`; a escolha do arquivo e das abas é feita na tela.
-- **Perfis de Frota**: `Saneamento` e `Itarema` agora têm fluxos separados, com uploads e saídas organizados por frota.
+- **Perfis de Frota**: `Saneamento` e `Itarema` agora têm fluxos separados, com saídas organizadas por frota.
 
 ## ▶️ Como usar
 
@@ -37,20 +37,21 @@ O projeto foi construído utilizando as melhores práticas de programação modu
 InsightFlow/
 │
 ├── main.py              # Inicia a interface web local
-├── web_app.py           # Aplicação Flask com a UI no navegador
+├── web_app.py           # Servidor web principal
+├── app/
+│   └── web/
+│       └── server.py    # Ponto de entrada organizado da camada web
 ├── .env                 # Configurações opcionais da aplicação
 ├── assets/
         company/
         logo.png          # Logótipo da empresa para o relatório
 ├── modules/
-│   ├── data_processor.py # Lógica de extração e limpeza de dados
-│   ├── fleet_registry.py # Perfis de frota e roteamento
-│   ├── fleet_processors/ # Processadores separados por frota
-│   └── pdf_generator.py  # Design e geração do layout do PDF
-    └── observation_report.py  # Design e geração do layout do relatorio de anotações
+│   ├── processors/       # Processamento e leitura de dados
+│   ├── reports/          # Geração dos relatórios e PDFs
+│   ├── fleet/            # Perfis, roteamento e organização por frota
+│   └── __init__.py       # Pacote principal dos módulos
 ├── templates/           # Estrutura HTML da interface web
 ├── static/              # Estilos da interface web
-├── uploads/             # Planilhas enviadas pela interface web, separadas por frota
 └── outputs/             # Relatórios gerados, separados por frota
 ```
 
@@ -70,7 +71,7 @@ AUTOR: Nicolas Rock
 
 - **Local Web Interface**: Upload the Excel file, choose the sheets, and generate reports in a modern browser interface.
 - **Explicit Selection**: The app no longer uses `EXCEL_FILENAME` or `SELECTED_SHEET` in `.env`; file and sheet selection now happens in the UI.
-- **Fleet Profiles**: `Saneamento` and `Itarema` now have separate processing flows, with uploads and outputs organized by fleet.
+- **Fleet Profiles**: `Saneamento` and `Itarema` now have separate processing flows, with outputs organized by fleet.
 
 ## ▶️ How to use
 
@@ -101,19 +102,21 @@ The project was built using best practices in modular programming and the follow
 InsightFlow/
 │
 ├── main.py # Starts the local web interface
-├── web_app.py # Flask application for the browser UI
+├── web_app.py # Main web server
+├── app/
+│   └── web/
+│       └── server.py # Organized entrypoint for the web layer
 ├── .env # Optional application settings
 ├── assets/
     company/
     logo.png # Company logo for the report
 ├── modules/
-│ ├── data_processor.py # Data extraction and cleaning logic
-│ ├── fleet_registry.py # Fleet profiles and routing
-│ ├── fleet_processors/ # Separate processors per fleet
-│ └── pdf_generator.py # PDF layout design and generation
+│ ├── processors/ # Data processing and Excel readers
+│ ├── reports/ # Report and PDF generation
+│ ├── fleet/ # Fleet profiles, routing, and fleet packages
+│ └── __init__.py # Main modules package
 ├── templates/ # HTML for the web interface
 ├── static/ # Styles for the web interface
-├── uploads/ # Workbooks uploaded through the web interface, split by fleet
 └── outputs/ # Generated reports, split by fleet
 ```
 

@@ -1,4 +1,5 @@
 import os
+import tempfile
 import threading
 import webbrowser
 from pathlib import Path
@@ -9,12 +10,12 @@ from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, send_from_directory, session, url_for
 from werkzeug.utils import secure_filename
 
-from modules.fleet_registry import DEFAULT_FLEET_KEY, get_fleet_profile, list_fleet_profiles
+from modules.fleet.registry import DEFAULT_FLEET_KEY, get_fleet_profile, list_fleet_profiles
 
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
-UPLOAD_DIR = BASE_DIR / "uploads"
+UPLOAD_DIR = Path(tempfile.gettempdir()) / "insightflow_uploads"
 ALLOWED_EXTENSIONS = {".xlsx", ".xls", ".xlsm"}
 
 app = Flask(__name__)
@@ -40,7 +41,9 @@ def _active_profile():
 
 def _upload_folder(profile=None):
     profile = profile or _active_profile()
-    return _resolve_folder(UPLOAD_DIR / profile.upload_subfolder, profile.upload_subfolder)
+    folder = UPLOAD_DIR / profile.upload_subfolder
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder
 
 
 def _profile_output_folder(profile=None):
@@ -89,7 +92,6 @@ def _page_context(results=None):
 
     return {
         "uploaded_name": session.get("uploaded_name", ""),
-        "uploaded_path": excel_path,
         "fleet_profiles": list_fleet_profiles(),
         "selected_fleet_key": profile.key,
         "selected_fleet_label": profile.label,

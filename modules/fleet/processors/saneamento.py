@@ -1,10 +1,10 @@
-from modules.data_processor import get_weekly_data
-from modules.fleet_common import detect_observation_sheet
-from modules.fleet_interface import (
+from modules.fleet.common import detect_observation_sheet
+from modules.fleet.interface import (
     create_monthly_report as shared_create_monthly_report,
     create_observation_report as shared_create_observation_report,
     create_weekly_report as shared_create_weekly_report,
 )
+from modules.processors.data_processor import get_weekly_data
 
 
 PROFILE_LABEL = "Saneamento"

@@ -1,4 +1,4 @@
-from web_app import run_app
+from app.web.server import run_app
 
 
 def main():

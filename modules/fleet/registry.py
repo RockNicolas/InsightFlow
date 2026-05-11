@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from modules.fleet_processors import itarema, saneamento
+from modules.fleet.processors import itarema, saneamento
 
 
 @dataclass(frozen=True)

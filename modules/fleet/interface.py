@@ -1,6 +1,6 @@
-from modules.monthly_report import create_monthly_report as shared_create_monthly_report
-from modules.observation_report import create_observation_report as shared_create_observation_report
-from modules.pdf_generator import create_pdf_report as shared_create_pdf_report
+from modules.reports.monthly_report import create_monthly_report as shared_create_monthly_report
+from modules.reports.observation_report import create_observation_report as shared_create_observation_report
+from modules.reports.pdf_generator import create_pdf_report as shared_create_pdf_report
 
 
 def create_weekly_report(excel_path, sheet_name, output_folder, weekly_data_loader):
