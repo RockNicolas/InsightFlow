@@ -35,6 +35,13 @@ def _output_folder():
     return _resolve_folder(os.getenv("OUTPUT_FOLDER", "outputs"), "outputs")
 
 
+def _ensure_output_structure():
+    root = _output_folder()
+    for profile in list_fleet_profiles():
+        profile_folder = _resolve_folder(root / profile.output_subfolder, profile.output_subfolder)
+        _resolve_folder(profile_folder / "mensal", "mensal")
+
+
 def _active_profile():
     return get_fleet_profile(session.get("fleet_profile", DEFAULT_FLEET_KEY))
 
@@ -66,6 +73,21 @@ def _session_excel_path():
     return ""
 
 
+def _resolve_sheet_name(sheet_value, sheet_names):
+    raw_value = str(sheet_value or "")
+    if raw_value in sheet_names:
+        return raw_value
+
+    normalized = raw_value.strip()
+    if not normalized:
+        return ""
+
+    for sheet_name in sheet_names:
+        if str(sheet_name).strip() == normalized:
+            return sheet_name
+    return ""
+
+
 def _valid_weekly_options(sheet_names, observation_sheet):
     return [sheet for sheet in sheet_names if sheet != observation_sheet]
 
@@ -81,14 +103,12 @@ def _page_context(results=None):
     else:
         sheet_names = []
 
-    observation_sheet = str(session.get("observation_sheet", "")).strip()
-    if observation_sheet not in sheet_names:
+    observation_sheet = _resolve_sheet_name(session.get("observation_sheet", ""), sheet_names)
+    if not observation_sheet:
         observation_sheet = profile.processor.detect_observation_sheet(sheet_names)
 
     weekly_options = _valid_weekly_options(sheet_names, observation_sheet)
-    weekly_sheet = str(session.get("weekly_sheet", "")).strip()
-    if weekly_sheet not in weekly_options:
-        weekly_sheet = ""
+    weekly_sheet = _resolve_sheet_name(session.get("weekly_sheet", ""), weekly_options)
 
     return {
         "uploaded_name": session.get("uploaded_name", ""),
@@ -176,14 +196,10 @@ def generate_reports():
         return render_template("index.html", **_page_context())
 
     sheet_names = _load_sheet_names(excel_path)
-    observation_sheet = str(request.form.get("observation_sheet", "")).strip()
-    if observation_sheet not in sheet_names:
-        observation_sheet = ""
+    observation_sheet = _resolve_sheet_name(request.form.get("observation_sheet", ""), sheet_names)
 
     weekly_options = _valid_weekly_options(sheet_names, observation_sheet)
-    weekly_sheet = str(request.form.get("weekly_sheet", "")).strip()
-    if weekly_sheet not in weekly_options:
-        weekly_sheet = ""
+    weekly_sheet = _resolve_sheet_name(request.form.get("weekly_sheet", ""), weekly_options)
 
     session["weekly_sheet"] = weekly_sheet
     session["observation_sheet"] = observation_sheet
@@ -271,6 +287,8 @@ def download_file(filename):
 
 
 def run_app(host="127.0.0.1", port=5000, open_browser=True):
+    _ensure_output_structure()
+
     if open_browser:
         threading.Timer(1.0, lambda: webbrowser.open(f"http://{host}:{port}")).start()
 
