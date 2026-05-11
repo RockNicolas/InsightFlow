@@ -3,6 +3,23 @@ import os
 import unicodedata
 
 
+def _find_sheet_name(file_path, requested_sheet):
+    requested = str(requested_sheet or "").strip().strip("'").strip()
+    if not requested:
+        return requested_sheet
+
+    try:
+        xl = pd.ExcelFile(file_path)
+        for name in xl.sheet_names:
+            candidate = str(name or "").strip()
+            if candidate.strip("'").strip() == requested:
+                return name
+    except Exception:
+        pass
+
+    return requested_sheet
+
+
 def _normalize_text(value):
     """Normaliza texto removendo acentos e padronizando para comparacoes."""
     text = str(value or "").strip().upper()
@@ -38,6 +55,7 @@ def _to_float_or_none(value):
 
 def get_weekly_data(file_path, sheet):
     """Extrai dados de todas as frotas e concatena Máquina + Placa."""
+    sheet = _find_sheet_name(file_path, str(sheet or "").strip())
     try:
         header_row = _detect_header_row(file_path, sheet)
         df = pd.read_excel(file_path, sheet_name=sheet, header=header_row)

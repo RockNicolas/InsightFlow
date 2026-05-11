@@ -280,8 +280,8 @@ def _build_pie_chart(machines, vehicles, width):
 
 
 # ── Ponto de entrada ─────────────────────────────────────────────────────────
-def create_monthly_report(excel_path, obs_sheet_name, output_folder):
-	"""Le todas as abas do Excel (exceto observacoes) e gera UM PDF mensal."""
+def create_monthly_report(excel_path, obs_sheet_name, output_folder, selected_sheets=None):
+	"""Gera um PDF mensal usando apenas as abas selecionadas."""
 	try:
 		xl = pd.ExcelFile(excel_path)
 		available_sheets = xl.sheet_names
@@ -289,7 +289,20 @@ def create_monthly_report(excel_path, obs_sheet_name, output_folder):
 		print(f"ERRO ao abrir Excel: {e}")
 		return None
 
-	valid_sheets = [s for s in available_sheets if s != obs_sheet_name]
+	if selected_sheets:
+		valid_sheets = []
+		for sheet in selected_sheets:
+			sheet_name = str(sheet or "").strip()
+			if (
+				sheet_name
+				and sheet_name in available_sheets
+				and sheet_name != obs_sheet_name
+				and sheet_name not in valid_sheets
+			):
+				valid_sheets.append(sheet_name)
+	else:
+		valid_sheets = [s for s in available_sheets if s != obs_sheet_name]
+
 	if not valid_sheets:
 		print("ERRO: Nenhuma aba semanal encontrada.")
 		return None

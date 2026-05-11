@@ -1,12 +1,30 @@
 import os
 import pandas as pd
 from reportlab.lib.pagesizes import A4, landscape
+
+
+def _find_sheet_name(file_path, requested_sheet):
+    requested = str(requested_sheet or "").strip().strip("'").strip()
+    if not requested:
+        return requested_sheet
+
+    try:
+        xl = pd.ExcelFile(file_path)
+        for name in xl.sheet_names:
+            candidate = str(name or "").strip()
+            if candidate.strip("'").strip() == requested:
+                return name
+    except Exception:
+        pass
+
+    return requested_sheet
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT
 
 def create_observation_report(excel_path, sheet_name, output_folder):
+    sheet_name = _find_sheet_name(excel_path, str(sheet_name or "").strip())
     pdf_path = os.path.join(output_folder, f"Relatorio_Obs_{sheet_name}.pdf")
     logo_path = os.path.join("assets", "company", "company_2.png")
 

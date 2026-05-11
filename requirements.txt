@@ -4,3 +4,4 @@ Python 3.13
 2. Openpyxl (pip install openpyxl)
 3. FPDF (pip install fpdf)
 4. Python-Dotenv (pip install python-dotenv)
+5. Flask (pip install flask)

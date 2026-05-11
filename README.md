@@ -7,7 +7,17 @@ O **InsightFlow** é uma ferramenta desenvolvida em Python para simplificar a ge
 - **Extração Inteligente**: Varre folhas de cálculo ignorando erros de fórmulas e capturando dados de múltiplas frotas (Máquinas Pesadas, Camiões e Ligeiros).
 - **Processamento de Dados**: Soma automaticamente as horas diárias, filtrando ruídos e valores inválidos.
 - **Relatórios Customizados**: Gera PDFs com logótipo, tabelas formatadas e destaque visual (cor vermelha) para itens críticos ou de baixa produtividade.
-- **Configuração Simples**: Gestão de variáveis (ficheiros, abas e caminhos) via arquivo `.env`.
+- **Interface Web Local**: Envie a planilha Excel, escolha as abas e gere os relatórios em uma interface moderna no navegador.
+- **Seleção Explícita**: O sistema não usa mais `EXCEL_FILENAME` nem `SELECTED_SHEET` no `.env`; a escolha do arquivo e das abas é feita na tela.
+
+## ▶️ Como usar
+
+1. Execute `python main.py`
+2. Envie a planilha Excel na interface web
+3. Escolha a aba semanal, a aba de observações e as abas que entram no relatório mensal
+4. Gere os relatórios desejados
+
+O `.env` agora é usado apenas para configurações da aplicação, como a pasta de saída `OUTPUT_FOLDER`.
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -25,8 +35,9 @@ O projeto foi construído utilizando as melhores práticas de programação modu
 ```text
 InsightFlow/
 │
-├── main.py              # Orquestrador principal do sistema
-├── .env                 # Configurações de caminhos e nomes de ficheiros
+├── main.py              # Inicia a interface web local
+├── web_app.py           # Aplicação Flask com a UI no navegador
+├── .env                 # Configurações opcionais da aplicação
 ├── assets/
         company/
         logo.png          # Logótipo da empresa para o relatório
@@ -34,7 +45,9 @@ InsightFlow/
 │   ├── data_processor.py # Lógica de extração e limpeza de dados
 │   └── pdf_generator.py  # Design e geração do layout do PDF
     └── observation_report.py  # Design e geração do layout do relatorio de anotações
-├── inputs/              # Pasta para colocar as folhas de cálculo Excel
+├── templates/           # Estrutura HTML da interface web
+├── static/              # Estilos da interface web
+├── uploads/             # Planilhas enviadas pela interface web
 └── outputs/             # Pasta onde os relatórios gerados são guardados
 ```
 
@@ -52,7 +65,17 @@ AUTOR: Nicolas Rock
 
 - **Customized Reports**: Generates PDFs with logos, formatted tables, and visual highlighting (red color) for critical or low-productivity items.
 
-- **Simple Configuration**: Management of variables (files, tabs, and paths) via `.env` file.
+- **Local Web Interface**: Upload the Excel file, choose the sheets, and generate reports in a modern browser interface.
+- **Explicit Selection**: The app no longer uses `EXCEL_FILENAME` or `SELECTED_SHEET` in `.env`; file and sheet selection now happens in the UI.
+
+## ▶️ How to use
+
+1. Run `python main.py`
+2. Upload the Excel workbook in the web interface
+3. Choose the weekly sheet, the observation sheet, and the sheets that should be included in the monthly report
+4. Generate the reports you want
+
+The `.env` file is now used only for application settings, such as the output folder `OUTPUT_FOLDER`.
 
 ## 🛠️ Technologies Used
 
@@ -73,15 +96,18 @@ The project was built using best practices in modular programming and the follow
 ```text
 InsightFlow/
 │
-├── main.py # Main system orchestrator
-├── .env # File path and name configurations
+├── main.py # Starts the local web interface
+├── web_app.py # Flask application for the browser UI
+├── .env # Optional application settings
 ├── assets/
     company/
     logo.png # Company logo for the report
 ├── modules/
 │ ├── data_processor.py # Data extraction and cleaning logic
 │ └── pdf_generator.py # PDF layout design and generation
-├── inputs/ # Folder to place Excel spreadsheets
+├── templates/ # HTML for the web interface
+├── static/ # Styles for the web interface
+├── uploads/ # Workbooks uploaded through the web interface
 └── outputs/ # Folder where generated reports are saved
 ```
 
