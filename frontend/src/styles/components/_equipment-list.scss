@@ -1,13 +1,14 @@
 .equipment-table-wrap {
   border: 1px solid var(--line);
   border-radius: 16px;
-  overflow: hidden;
+  overflow-x: auto;
   background: #ffffff;
 }
 
 .equipment-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 15px;
   table-layout: auto;
 
@@ -23,15 +24,20 @@
       letter-spacing: 0.06em;
       color: var(--muted);
       border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+
+      &.equipment-table__maintenance-head {
+        text-align: center;
+      }
     }
   }
 
-  &__spacer-head,
-  &__spacer {
+  &__fill-head,
+  &__fill {
     width: 100%;
     padding: 0 !important;
     border-bottom: 1px solid var(--line);
-    background: inherit;
+    background: #ffffff;
   }
 
   tbody tr {
@@ -44,8 +50,12 @@
     &:nth-child(even) {
       background: #f8fafc;
 
-      .equipment-table__spacer {
+      .equipment-table__fill {
         background: #f8fafc;
+      }
+
+      .equipment-table__maintenance {
+        background: #f4f8ff;
       }
     }
   }
@@ -56,11 +66,12 @@
   }
 
   &__equipment {
-    line-height: 1.45;
-    word-break: break-word;
-    padding-right: 12px;
+    width: auto;
     min-width: 280px;
-    white-space: normal;
+    line-height: 1.45;
+    white-space: nowrap;
+    padding-right: 16px;
+    background: inherit;
   }
 
   &__name {
@@ -68,22 +79,37 @@
     color: var(--text);
   }
 
+  &__maintenance-head,
+  &__maintenance {
+    width: 200px;
+    min-width: 200px;
+    max-width: 200px;
+    border-left: 3px solid #bfd3f6;
+    background: #f0f6ff;
+    padding: 14px 12px;
+    white-space: nowrap;
+    box-sizing: border-box;
+    text-align: center;
+  }
+
+  &__maintenance-head {
+    padding: 12px;
+    color: var(--primary-dark);
+    background: #e8f0fe;
+    border-left: 3px solid #93b4f0;
+  }
+
   &__maintenance {
     font-weight: 600;
     color: var(--text);
-    white-space: normal;
-    min-width: 260px;
-    width: 1%;
-    padding-left: 16px;
-    padding-right: 16px;
-    border-left: 2px solid #d9e3f0;
-    background: #fafcff;
-  }
 
-  thead th:nth-child(2) {
-    border-left: 2px solid #d9e3f0;
-    background: #e8f0fe;
-    min-width: 260px;
+    .maintenance-date-cell,
+    .maintenance-date-cell__value,
+    .equipment-list__empty {
+      display: block;
+      width: 100%;
+      text-align: center;
+    }
   }
 }
 
@@ -91,6 +117,7 @@
   &__sep {
     font-weight: 500;
     color: var(--muted);
+    white-space: pre;
   }
 
   &__code {
@@ -111,15 +138,21 @@
 
 @media (max-width: 720px) {
   .equipment-table {
-    table-layout: auto;
-
     &__equipment {
+      min-width: 200px;
       white-space: normal;
-      width: auto;
     }
 
+    &__maintenance-head,
     &__maintenance {
-      white-space: normal;
+      width: auto;
+      min-width: 140px;
+      max-width: none;
+    }
+
+    &__fill-head,
+    &__fill {
+      display: none;
     }
   }
 }

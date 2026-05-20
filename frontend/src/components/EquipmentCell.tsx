@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react'
 import type { MaintenanceEquipment } from '../constants/maintenanceFleet'
 
 import { ConfirmDialog } from './ConfirmDialog'
+import { EditEquipmentModal, type EditEquipmentModalData } from './EditEquipmentModal'
 import { PencilIcon, TrashIcon } from './MaintenanceActionIcons'
+
 export interface EquipmentFormData {
   type: string
   code: string
@@ -15,6 +17,7 @@ interface EquipmentCellProps {
   item: MaintenanceEquipment
   saving: boolean
   onUpdate: (equipmentId: string, data: EquipmentFormData) => Promise<void>
+  onSaveMaintenance: (equipmentId: string, lastMaintenance: string) => Promise<void>
   onDelete: (equipmentId: string) => Promise<void>
 }
 
@@ -55,52 +58,53 @@ function formatDisplay(item: MaintenanceEquipment) {
   )
 }
 
-export function EquipmentCell({ item, saving, onUpdate, onDelete }: EquipmentCellProps) {
-  const [editing, setEditing] = useState(false)
+export function EquipmentCell({
+  item,
+  saving,
+  onUpdate,
+  onSaveMaintenance,
+  onDelete,
+}: EquipmentCellProps) {
+  const [modalOpen, setModalOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const [type, setType] = useState(item.type)
-  const [code, setCode] = useState(item.code)
-  const [note, setNote] = useState(item.note ?? '')
-  const [alert, setAlert] = useState(Boolean(item.alert))
 
   const equipmentLabel = formatLabel(item)
 
   useEffect(() => {
-    setType(item.type)
-    setCode(item.code)
-    setNote(item.note ?? '')
-    setAlert(Boolean(item.alert))
-    setEditing(false)
+    setModalOpen(false)
     setConfirmOpen(false)
-  }, [item.id, item.type, item.code, item.note, item.alert])
+  }, [item.id, item.type, item.code, item.note, item.alert, item.lastMaintenance])
 
-  const resetForm = () => {
-    setType(item.type)
-    setCode(item.code)
-    setNote(item.note ?? '')
-    setAlert(Boolean(item.alert))
-  }
-
-  const handleSave = async () => {
-    const payload = {
-      type: type.trim(),
-      code: code.trim(),
-      note: note.trim(),
-      alert,
+  const handleSave = async (data: EditEquipmentModalData) => {
+    const equipmentPayload = {
+      type: data.type,
+      code: data.code,
+      note: data.note,
+      alert: data.alert,
     }
 
-    if (
-      payload.type === item.type &&
-      payload.code === item.code &&
-      payload.note === (item.note ?? '') &&
-      payload.alert === Boolean(item.alert)
-    ) {
-      setEditing(false)
+    const equipmentChanged =
+      equipmentPayload.type !== item.type ||
+      equipmentPayload.code !== item.code ||
+      equipmentPayload.note !== (item.note ?? '') ||
+      equipmentPayload.alert !== Boolean(item.alert)
+
+    const maintenanceChanged = data.lastMaintenance !== (item.lastMaintenance || '')
+
+    if (!equipmentChanged && !maintenanceChanged) {
+      setModalOpen(false)
       return
     }
 
-    await onUpdate(item.id, payload)
-    setEditing(false)
+    if (equipmentChanged) {
+      await onUpdate(item.id, equipmentPayload)
+    }
+
+    if (maintenanceChanged) {
+      await onSaveMaintenance(item.id, data.lastMaintenance)
+    }
+
+    setModalOpen(false)
   }
 
   const handleConfirmDelete = async () => {
@@ -108,82 +112,15 @@ export function EquipmentCell({ item, saving, onUpdate, onDelete }: EquipmentCel
     setConfirmOpen(false)
   }
 
-  if (editing) {
-    return (
-      <div className="equipment-cell equipment-cell--editing">
-        <div className="equipment-cell__fields">
-          <label>
-            <span>Equipamento</span>
-            <input
-              type="text"
-              value={type}
-              onChange={(event) => setType(event.target.value)}
-              disabled={saving}
-              required
-            />
-          </label>
-          <label>
-            <span>Placa / Código</span>
-            <input
-              type="text"
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-              disabled={saving}
-              required
-            />
-          </label>
-          <label>
-            <span>Observação</span>
-            <input
-              type="text"
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              disabled={saving}
-              placeholder="Opcional"
-            />
-          </label>
-        </div>
-        <label className="equipment-cell__alert">
-          <input
-            type="checkbox"
-            checked={alert}
-            onChange={(event) => setAlert(event.target.checked)}
-            disabled={saving}
-          />
-          <span>Destaque vermelho</span>
-        </label>
-        <div className="equipment-cell__edit-actions">
-          <button
-            type="button"
-            className="button secondary"
-            onClick={() => {
-              resetForm()
-              setEditing(false)
-            }}
-            disabled={saving}
-          >
-            Cancelar
-          </button>
-          <button type="button" className="button primary" onClick={() => void handleSave()} disabled={saving}>
-            {saving ? 'Salvando...' : 'Salvar'}
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <>
       <div className="equipment-cell">
-        <span className="equipment-cell__display">{formatDisplay(item)}</span>
+        <span className="equipment-cell__label">{formatDisplay(item)}</span>
         <div className="equipment-cell__icons">
           <button
             type="button"
             className="maintenance-icon-btn maintenance-icon-btn--edit"
-            onClick={() => {
-              resetForm()
-              setEditing(true)
-            }}
+            onClick={() => setModalOpen(true)}
             disabled={saving}
             title="Editar equipamento"
             aria-label={`Editar equipamento ${equipmentLabel}`}
@@ -202,6 +139,14 @@ export function EquipmentCell({ item, saving, onUpdate, onDelete }: EquipmentCel
           </button>
         </div>
       </div>
+
+      <EditEquipmentModal
+        open={modalOpen}
+        item={item}
+        saving={saving}
+        onCancel={() => setModalOpen(false)}
+        onSave={handleSave}
+      />
 
       <ConfirmDialog
         open={confirmOpen}

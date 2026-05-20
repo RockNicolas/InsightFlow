@@ -1,33 +1,19 @@
 .maintenance-date-cell {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 200px;
-
-  &--editing {
-    .maintenance-date-cell__input {
-      width: 100%;
-      max-width: 180px;
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid var(--primary);
-      font-size: 14px;
-      font-family: inherit;
-      color: var(--text);
-      background: #fff;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-    }
-  }
+  display: block;
+  width: 100%;
+  text-align: center;
 
   &__value {
+    display: block;
+    width: 100%;
+    text-align: center;
     font-weight: 600;
     color: var(--text);
-    min-width: 100px;
   }
+}
 
-  &__icons {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
+.equipment-table__maintenance .equipment-list__empty {
+  display: block;
+  width: 100%;
+  text-align: center;
 }

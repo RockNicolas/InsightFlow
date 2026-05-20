@@ -2,6 +2,7 @@ import type { MaintenanceEquipment } from '../constants/maintenanceFleet'
 
 import { EquipmentCell, type EquipmentFormData } from './EquipmentCell'
 import { MaintenanceDateCell } from './MaintenanceDateCell'
+
 interface EquipmentListProps {
   items: MaintenanceEquipment[]
   savingId: string | null
@@ -30,16 +31,13 @@ export function EquipmentList({
   return (
     <div className="equipment-table-wrap">
       <table className="equipment-table">
-        <colgroup>
-          <col className="equipment-table__col-equipment" />
-          <col className="equipment-table__col-maintenance" />
-          <col className="equipment-table__col-spacer" />
-        </colgroup>
         <thead>
           <tr>
             <th scope="col">Equipamento / Placa</th>
-            <th scope="col">Última manutenção</th>
-            <th scope="col" className="equipment-table__spacer-head" aria-hidden />
+            <th scope="col" className="equipment-table__maintenance-head">
+              Última manutenção
+            </th>
+            <th scope="col" className="equipment-table__fill-head" aria-hidden />
           </tr>
         </thead>
         <tbody>
@@ -50,17 +48,14 @@ export function EquipmentList({
                   item={item}
                   saving={savingId === item.id}
                   onUpdate={onUpdateEquipment}
+                  onSaveMaintenance={onSaveMaintenance}
                   onDelete={onDeleteEquipment}
                 />
               </td>
               <td className="equipment-table__maintenance">
-                <MaintenanceDateCell
-                  item={item}
-                  saving={savingId === item.id}
-                  onSave={onSaveMaintenance}
-                />
+                <MaintenanceDateCell item={item} />
               </td>
-              <td className="equipment-table__spacer" aria-hidden />
+              <td className="equipment-table__fill" aria-hidden />
             </tr>
           ))}
         </tbody>

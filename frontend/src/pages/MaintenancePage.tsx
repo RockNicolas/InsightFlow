@@ -187,7 +187,7 @@ export function MaintenancePage() {
   }
 
   return (
-    <main className="page">
+    <main className="page page--wide">
       <AppNav />
 
       <section className="hero hero-with-action">
@@ -259,8 +259,8 @@ export function MaintenancePage() {
             />
           )}
           <p className="field-note maintenance-fleet-note">
-            Na coluna Equipamento: lápis edita nome, placa e observação; lixeira remove o cadastro.
-            Na coluna Manutenção: lápis edita a data; lixeira remove só o registro de data.
+            Use o lápis na coluna Equipamento para editar nome, placa, observação e data de manutenção.
+            A lixeira remove o cadastro da frota.
           </p>
         </div>
       </section>

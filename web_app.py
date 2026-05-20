@@ -29,6 +29,7 @@ atexit.register(disconnect_db)
 
 BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIST = BASE_DIR / "frontend" / "dist"
+ASSETS_DIR = BASE_DIR / "assets"
 UPLOAD_DIR = Path(tempfile.gettempdir()) / "insightflow_uploads"
 ALLOWED_EXTENSIONS = {".xlsx", ".xls", ".xlsm"}
 STARTUP_TOKEN = uuid4().hex
@@ -430,6 +431,14 @@ def api_generate_reports():
 @app.get("/downloads/<path:filename>")
 def download_file(filename):
     return send_from_directory(_output_folder(), filename, as_attachment=False)
+
+
+@app.get("/assets/<path:filename>")
+def serve_assets(filename):
+    """Logos e imagens usados nos PDFs (pasta assets/ na raiz do projeto)."""
+    if not ASSETS_DIR.is_dir():
+        return _api_error("Pasta assets/ nao encontrada.", 404)
+    return send_from_directory(ASSETS_DIR, filename)
 
 
 @app.get("/", defaults={"path": ""})
