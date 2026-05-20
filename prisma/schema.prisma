@@ -1,0 +1,48 @@
+// InsightFlow — PostgreSQL (Neon)
+// DATABASE_URL no arquivo .env na raiz do projeto
+// Migrações: npx prisma db push
+// App Python usa psycopg2 (modules/maintenance/store.py)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FleetCategory {
+  machine
+  truck
+  vehicle
+}
+
+/// Equipamento da frota (máquinas, caminhões, veículos)
+model Equipment {
+  id       String        @id
+  category FleetCategory
+  type     String
+  code     String
+  note     String        @default("")
+  alert    Boolean       @default(false)
+
+  maintenance MaintenanceRecord?
+
+  @@index([category])
+  @@map("equipment")
+}
+
+/// Registro de última manutenção por equipamento
+model MaintenanceRecord {
+  id              String    @id @default(cuid())
+  equipmentId     String    @unique @map("equipment_id")
+  equipment       Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  lastMaintenance DateTime? @map("last_maintenance")
+  notes           String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("maintenance_records")
+}

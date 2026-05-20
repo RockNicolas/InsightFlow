@@ -4,3 +4,12 @@
 @use 'layout';
 @use 'components';
 @use 'maintenance';
+
+// Estilos dos componentes React (pasta styles/components/)
+@use 'components/maintenance-icon-btn';
+@use 'components/maintenance-date-cell';
+@use 'components/equipment-cell';
+@use 'components/equipment-list';
+@use 'components/category-tabs';
+@use 'components/confirm-dialog';
+@use 'components/add-equipment-form';

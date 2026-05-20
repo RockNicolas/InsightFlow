@@ -1,7 +1,5 @@
 import type { MaintenanceCategory } from '../constants/maintenanceCategories'
 
-import './CategoryTabs.scss'
-
 interface CategoryTab {
   id: MaintenanceCategory
   label: string

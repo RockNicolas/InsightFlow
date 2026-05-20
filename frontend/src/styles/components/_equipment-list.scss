@@ -59,8 +59,8 @@
     line-height: 1.45;
     word-break: break-word;
     padding-right: 12px;
-    width: 1%;
-    white-space: nowrap;
+    min-width: 280px;
+    white-space: normal;
   }
 
   &__name {
@@ -71,7 +71,9 @@
   &__maintenance {
     font-weight: 600;
     color: var(--text);
-    white-space: nowrap;
+    white-space: normal;
+    min-width: 260px;
+    width: 1%;
     padding-left: 16px;
     padding-right: 16px;
     border-left: 2px solid #d9e3f0;
@@ -81,6 +83,7 @@
   thead th:nth-child(2) {
     border-left: 2px solid #d9e3f0;
     background: #e8f0fe;
+    min-width: 260px;
   }
 }
 

@@ -46,3 +46,9 @@ relatorios/
 # Arquivos gerados
 assets/
 outputs/
+
+# Dados cadastrados localmente (manutenção — legado)
+data/maintenance_records.json
+
+# Prisma
+node_modules/

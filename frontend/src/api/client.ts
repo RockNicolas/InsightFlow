@@ -1,3 +1,10 @@
+import type {
+  CreateEquipmentPayload,
+  DeleteEquipmentPayload,
+  MaintenanceFleetResponse,
+  UpdateEquipmentPayload,
+  UpdateMaintenancePayload,
+} from '../constants/maintenanceFleet'
 import type { ApiResponse, GeneratePayload, SessionState } from '../types'
 
 async function request<T>(url: string, init?: RequestInit): Promise<ApiResponse<T>> {
@@ -6,9 +13,27 @@ async function request<T>(url: string, init?: RequestInit): Promise<ApiResponse<
     ...init,
   })
 
-  const payload = (await response.json()) as ApiResponse<T>
-  if (!response.ok && payload.ok === undefined) {
+  let payload: ApiResponse<T>
+  try {
+    payload = (await response.json()) as ApiResponse<T>
+  } catch {
+    if (response.status === 405) {
+      throw new Error(
+        'Cadastro indisponível: reinicie o servidor (Ctrl+C no terminal e python main.py).',
+      )
+    }
     throw new Error('Falha na comunicação com o servidor.')
+  }
+
+  if (!response.ok) {
+    if (response.status === 405) {
+      throw new Error(
+        'Cadastro indisponível: reinicie o servidor (Ctrl+C no terminal e python main.py).',
+      )
+    }
+    if (payload.ok === undefined) {
+      throw new Error(payload.message || 'Falha na comunicação com o servidor.')
+    }
   }
   return payload
 }
@@ -43,4 +68,48 @@ export async function generateReports(
 
 export function downloadUrl(path: string): string {
   return `/downloads/${path}`
+}
+
+export async function fetchMaintenanceFleet(): Promise<ApiResponse<MaintenanceFleetResponse>> {
+  return request<MaintenanceFleetResponse>('/api/maintenance/fleet')
+}
+
+export async function saveMaintenanceRecord(
+  payload: UpdateMaintenancePayload,
+): Promise<ApiResponse<MaintenanceFleetResponse>> {
+  return request<MaintenanceFleetResponse>('/api/maintenance/record', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function createEquipment(
+  payload: CreateEquipmentPayload,
+): Promise<ApiResponse<MaintenanceFleetResponse>> {
+  return request<MaintenanceFleetResponse>('/api/maintenance/equipment', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateEquipment(
+  payload: UpdateEquipmentPayload,
+): Promise<ApiResponse<MaintenanceFleetResponse>> {
+  return request<MaintenanceFleetResponse>('/api/maintenance/equipment', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteEquipment(
+  payload: DeleteEquipmentPayload,
+): Promise<ApiResponse<MaintenanceFleetResponse>> {
+  return request<MaintenanceFleetResponse>('/api/maintenance/equipment', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
 }

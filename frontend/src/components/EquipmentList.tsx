@@ -1,52 +1,24 @@
-import type { ReactNode } from 'react'
-
 import type { MaintenanceEquipment } from '../constants/maintenanceFleet'
 
-import './EquipmentList.scss'
-
+import { EquipmentCell, type EquipmentFormData } from './EquipmentCell'
+import { MaintenanceDateCell } from './MaintenanceDateCell'
 interface EquipmentListProps {
   items: MaintenanceEquipment[]
+  savingId: string | null
+  onSaveMaintenance: (equipmentId: string, lastMaintenance: string) => Promise<void>
+  onUpdateEquipment: (equipmentId: string, data: EquipmentFormData) => Promise<void>
+  onDeleteEquipment: (equipmentId: string) => Promise<void>
   emptyLabel?: string
 }
 
-function formatEquipment(item: MaintenanceEquipment): ReactNode {
-  const sep = <span className="equipment-list__sep"> — </span>
-
-  if (item.note) {
-    return (
-      <>
-        <span className="equipment-table__name">{item.type}</span>
-        {sep}
-        <span className={item.alert ? 'equipment-list__alert' : undefined}>{item.note}</span>
-        {sep}
-        <span className="equipment-list__code">{item.code}</span>
-      </>
-    )
-  }
-
-  return (
-    <>
-      <span className="equipment-table__name">{item.type}</span>
-      {sep}
-      <span
-        className={
-          item.alert ? 'equipment-list__code equipment-list__alert' : 'equipment-list__code'
-        }
-      >
-        {item.code}
-      </span>
-    </>
-  )
-}
-
-function formatLastMaintenance(value?: string | null): ReactNode {
-  if (!value || !value.trim()) {
-    return <span className="equipment-list__empty">Sem registro</span>
-  }
-  return value
-}
-
-export function EquipmentList({ items, emptyLabel = 'Nenhum equipamento cadastrado.' }: EquipmentListProps) {
+export function EquipmentList({
+  items,
+  savingId,
+  onSaveMaintenance,
+  onUpdateEquipment,
+  onDeleteEquipment,
+  emptyLabel = 'Nenhum equipamento cadastrado.',
+}: EquipmentListProps) {
   if (items.length === 0) {
     return (
       <div className="empty-state">
@@ -72,10 +44,21 @@ export function EquipmentList({ items, emptyLabel = 'Nenhum equipamento cadastra
         </thead>
         <tbody>
           {items.map((item) => (
-            <tr key={`${item.type}-${item.code}-${item.note ?? ''}`}>
-              <td className="equipment-table__equipment">{formatEquipment(item)}</td>
+            <tr key={item.id}>
+              <td className="equipment-table__equipment">
+                <EquipmentCell
+                  item={item}
+                  saving={savingId === item.id}
+                  onUpdate={onUpdateEquipment}
+                  onDelete={onDeleteEquipment}
+                />
+              </td>
               <td className="equipment-table__maintenance">
-                {formatLastMaintenance(item.lastMaintenance)}
+                <MaintenanceDateCell
+                  item={item}
+                  saving={savingId === item.id}
+                  onSave={onSaveMaintenance}
+                />
               </td>
               <td className="equipment-table__spacer" aria-hidden />
             </tr>

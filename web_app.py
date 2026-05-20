@@ -14,8 +14,18 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
 from modules.fleet.registry import DEFAULT_FLEET_KEY, get_fleet_profile, list_fleet_profiles
+from modules.maintenance.db import disconnect_db
+from modules.maintenance.store import (
+    create_equipment,
+    delete_equipment,
+    get_fleet_payload,
+    update_equipment,
+    update_last_maintenance,
+)
 
 load_dotenv()
+
+atexit.register(disconnect_db)
 
 BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIST = BASE_DIR / "frontend" / "dist"
@@ -203,6 +213,78 @@ def api_session():
     return _api_ok(_session_payload())
 
 
+@app.get("/api/maintenance/fleet")
+def api_maintenance_fleet():
+    try:
+        return _api_ok({"fleet": get_fleet_payload()})
+    except Exception as exc:
+        return _api_error(f"Banco de dados: {exc}", 503)
+
+
+@app.post("/api/maintenance/equipment")
+def api_create_equipment():
+    body = request.get_json(silent=True) or {}
+    try:
+        fleet = create_equipment(
+            body.get("category", ""),
+            body.get("type", ""),
+            body.get("code", ""),
+            body.get("note", ""),
+            bool(body.get("alert")),
+        )
+    except ValueError as exc:
+        return _api_error(str(exc))
+
+    return _api_ok({"fleet": fleet}, "Equipamento cadastrado com sucesso.")
+
+
+@app.put("/api/maintenance/equipment")
+def api_update_equipment():
+    body = request.get_json(silent=True) or {}
+    try:
+        fleet = update_equipment(
+            body.get("category", ""),
+            body.get("equipment_id", ""),
+            body.get("type", ""),
+            body.get("code", ""),
+            body.get("note", ""),
+            bool(body.get("alert")),
+        )
+    except ValueError as exc:
+        return _api_error(str(exc))
+
+    return _api_ok({"fleet": fleet}, "Equipamento atualizado com sucesso.")
+
+
+@app.delete("/api/maintenance/equipment")
+def api_delete_equipment():
+    body = request.get_json(silent=True) or {}
+    try:
+        fleet = delete_equipment(
+            body.get("category", ""),
+            body.get("equipment_id", ""),
+        )
+    except ValueError as exc:
+        return _api_error(str(exc))
+
+    return _api_ok({"fleet": fleet}, "Equipamento excluído com sucesso.")
+
+
+@app.put("/api/maintenance/record")
+def api_maintenance_record():
+    body = request.get_json(silent=True) or {}
+    category = body.get("category", "")
+    equipment_id = body.get("equipment_id", "")
+    last_maintenance = body.get("last_maintenance", "")
+
+    try:
+        fleet = update_last_maintenance(category, equipment_id, last_maintenance)
+    except ValueError as exc:
+        return _api_error(str(exc))
+
+    return _api_ok({"fleet": fleet}, "Manutenção salva com sucesso.")
+
+
 @app.post("/api/load-sheets")
 def api_load_sheets():
     profile = get_fleet_profile(request.form.get("fleet_profile"))
@@ -353,8 +435,12 @@ def download_file(filename):
 @app.get("/", defaults={"path": ""})
 @app.get("/<path:path>")
 def serve_spa(path):
-    if path.startswith("api/") or path.startswith("downloads/"):
-        return _api_error("Rota não encontrada.", 404)
+    # Evita que rotas /api/* sem handler POST caiam aqui e devolvam 405 confuso
+    if path == "api" or path.startswith("api/"):
+        return _api_error(
+            "Rota da API não encontrada. Pare o servidor (Ctrl+C) e execute python main.py de novo.",
+            404,
+        )
 
     if not FRONTEND_DIST.exists():
         return (

@@ -1,0 +1,17 @@
+{
+  "name": "insightflow",
+  "private": true,
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "db:setup": "prisma db push && prisma db seed"
+  },
+  "devDependencies": {
+    "prisma": "^6.19.0"
+  },
+  "prisma": {
+    "seed": "python prisma/seed.py"
+  }
+}
