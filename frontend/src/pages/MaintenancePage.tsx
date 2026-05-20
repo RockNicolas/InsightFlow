@@ -3,17 +3,20 @@ import { Link } from 'react-router-dom'
 
 import { AppNav } from '../components/AppNav'
 import { CategoryTabs } from '../components/CategoryTabs'
+import { EquipmentList } from '../components/EquipmentList'
 import {
   DEFAULT_MAINTENANCE_CATEGORY,
   MAINTENANCE_CATEGORIES,
   type MaintenanceCategory,
 } from '../constants/maintenanceCategories'
+import { MAINTENANCE_FLEET } from '../constants/maintenanceFleet'
 
 export function MaintenancePage() {
   const [activeCategory, setActiveCategory] =
     useState<MaintenanceCategory>(DEFAULT_MAINTENANCE_CATEGORY)
 
   const current = MAINTENANCE_CATEGORIES.find((item) => item.id === activeCategory)!
+  const fleet = MAINTENANCE_FLEET[activeCategory]
 
   return (
     <main className="page">
@@ -51,18 +54,21 @@ export function MaintenancePage() {
             <strong>{current.label}</strong>
           </article>
           <article className="stat-pill">
+            <span className="label">Equipamentos</span>
+            <strong>{fleet.length}</strong>
+          </article>
+          <article className="stat-pill">
             <span className="label">Medição</span>
             <strong>{current.unit === 'horas' ? 'Horímetro (horas)' : 'Quilometragem (km)'}</strong>
           </article>
         </div>
 
-        <div className="empty-state maintenance-panel" role="tabpanel">
-          <p>
-            Em breve: cadastro de ordens de serviço, histórico e alertas para{' '}
-            <strong>{current.label.toLowerCase()}</strong>.
-          </p>
-          <p className="field-note">
-            Os relatórios semanais e mensais continuam apenas em &quot;Relatórios de frota&quot;.
+        <div className="maintenance-panel" role="tabpanel">
+          <span className="label maintenance-fleet-label">Frota cadastrada</span>
+          <EquipmentList items={fleet} />
+          <p className="field-note maintenance-fleet-note">
+            Itens em vermelho (PRANCHA, LOCADA) seguem o mesmo destaque da planilha operacional.
+            Relatórios semanais e mensais continuam em &quot;Relatórios de frota&quot;.
           </p>
         </div>
       </section>

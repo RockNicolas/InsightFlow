@@ -1,0 +1,122 @@
+.equipment-table-wrap {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.equipment-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  table-layout: auto;
+
+  thead {
+    background: #f0f6ff;
+
+    th {
+      padding: 12px 18px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--line);
+    }
+  }
+
+  &__spacer-head,
+  &__spacer {
+    width: 100%;
+    padding: 0 !important;
+    border-bottom: 1px solid var(--line);
+    background: inherit;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--line);
+
+    &:last-child {
+      border-bottom: 0;
+    }
+
+    &:nth-child(even) {
+      background: #f8fafc;
+
+      .equipment-table__spacer {
+        background: #f8fafc;
+      }
+    }
+  }
+
+  td {
+    padding: 14px 18px;
+    vertical-align: middle;
+  }
+
+  &__equipment {
+    line-height: 1.45;
+    word-break: break-word;
+    padding-right: 12px;
+    width: 1%;
+    white-space: nowrap;
+  }
+
+  &__name {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  &__maintenance {
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    padding-left: 16px;
+    padding-right: 16px;
+    border-left: 2px solid #d9e3f0;
+    background: #fafcff;
+  }
+
+  thead th:nth-child(2) {
+    border-left: 2px solid #d9e3f0;
+    background: #e8f0fe;
+  }
+}
+
+.equipment-list {
+  &__sep {
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  &__code {
+    font-weight: 700;
+  }
+
+  &__alert {
+    color: #dc2626;
+    font-weight: 700;
+  }
+
+  &__empty {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 720px) {
+  .equipment-table {
+    table-layout: auto;
+
+    &__equipment {
+      white-space: normal;
+      width: auto;
+    }
+
+    &__maintenance {
+      white-space: normal;
+    }
+  }
+}

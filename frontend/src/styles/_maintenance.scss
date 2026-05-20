@@ -1,4 +1,5 @@
 @use 'variables' as *;
+@use 'mixins' as *;
 
 .maintenance-card {
   gap: 20px;
@@ -43,4 +44,14 @@
 
 .maintenance-panel {
   margin-top: 4px;
+  display: grid;
+  gap: 12px;
+}
+
+.maintenance-fleet-label {
+  @include label-caps;
+}
+
+.maintenance-fleet-note {
+  margin: 0;
 }
