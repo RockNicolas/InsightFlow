@@ -15,6 +15,12 @@ __pycache__/
 *.pyd
 
 # =========================
+# Frontend (React)
+# =========================
+frontend/node_modules/
+frontend/dist/
+
+# =========================
 # IDE / Editor
 # =========================
 .vscode/

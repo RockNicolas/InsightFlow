@@ -1,3 +1,4 @@
+import atexit
 import os
 import subprocess
 import tempfile
@@ -8,7 +9,8 @@ from uuid import uuid4
 
 import pandas as pd
 from dotenv import load_dotenv
-from flask import Flask, flash, redirect, render_template, request, send_from_directory, session, url_for
+from flask import Flask, jsonify, request, send_from_directory, session
+from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
 from modules.fleet.registry import DEFAULT_FLEET_KEY, get_fleet_profile, list_fleet_profiles
@@ -16,13 +18,27 @@ from modules.fleet.registry import DEFAULT_FLEET_KEY, get_fleet_profile, list_fl
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
+FRONTEND_DIST = BASE_DIR / "frontend" / "dist"
 UPLOAD_DIR = Path(tempfile.gettempdir()) / "insightflow_uploads"
 ALLOWED_EXTENSIONS = {".xlsx", ".xls", ".xlsm"}
 STARTUP_TOKEN = uuid4().hex
+VITE_DEV_PORT = 5173
+_vite_process = None
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder=None)
 base_secret = os.getenv("FLASK_SECRET_KEY", "insightflow-local-web-ui")
 app.secret_key = f"{base_secret}:{STARTUP_TOKEN}"
+
+CORS(
+    app,
+    supports_credentials=True,
+    origins=[
+        "http://127.0.0.1:5000",
+        "http://localhost:5000",
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+    ],
+)
 
 
 def _resolve_folder(path_value, default_name):
@@ -136,7 +152,11 @@ def _valid_weekly_options(sheet_names, observation_sheet):
     return [sheet for sheet in sheet_names if sheet != observation_sheet]
 
 
-def _page_context(results=None):
+def _fleet_profiles_payload():
+    return [{"key": profile.key, "label": profile.label} for profile in list_fleet_profiles()]
+
+
+def _session_payload(results=None):
     profile = _active_profile()
     excel_path = _session_excel_path()
     if excel_path:
@@ -156,7 +176,7 @@ def _page_context(results=None):
 
     return {
         "uploaded_name": session.get("uploaded_name", ""),
-        "fleet_profiles": list_fleet_profiles(),
+        "fleet_profiles": _fleet_profiles_payload(),
         "selected_fleet_key": profile.key,
         "selected_fleet_label": profile.label,
         "sheet_names": sheet_names,
@@ -166,27 +186,34 @@ def _page_context(results=None):
         "generate_all_month_sheets": session.get("generate_all_month_sheets", False),
         "results": results or [],
         "output_folder": str(_output_folder()),
-        "asset_version": STARTUP_TOKEN,
     }
 
 
-@app.get("/")
-def index():
-    return render_template("index.html", **_page_context())
+def _api_ok(data=None, message="", status=200):
+    payload = {"ok": True, "message": message, "data": data or {}}
+    return jsonify(payload), status
 
 
-@app.post("/load-sheets")
-def load_sheets():
+def _api_error(message, status=400):
+    return jsonify({"ok": False, "message": message, "data": {}}), status
+
+
+@app.get("/api/session")
+def api_session():
+    return _api_ok(_session_payload())
+
+
+@app.post("/api/load-sheets")
+def api_load_sheets():
     profile = get_fleet_profile(request.form.get("fleet_profile"))
     session["fleet_profile"] = profile.key
     uploaded_file = request.files.get("excel_file")
+
     if not uploaded_file or not uploaded_file.filename:
-        flash("Selecione um arquivo Excel para continuar.", "error")
-        return render_template("index.html", **_page_context())
+        return _api_error("Selecione um arquivo Excel para continuar.")
 
     if not _allowed_file(uploaded_file.filename):
-        flash("Formato inválido. Use arquivos .xlsx, .xls ou .xlsm.", "error")
-        return render_template("index.html", **_page_context())
+        return _api_error("Formato inválido. Use arquivos .xlsx, .xls ou .xlsm.")
 
     upload_folder = _upload_folder(profile)
 
@@ -206,8 +233,7 @@ def load_sheets():
         sheet_names = _load_sheet_names(saved_path)
     except Exception as exc:
         saved_path.unlink(missing_ok=True)
-        flash(f"Nao foi possivel ler a planilha: {exc}", "error")
-        return render_template("index.html", **_page_context())
+        return _api_error(f"Nao foi possivel ler a planilha: {exc}")
 
     session["excel_path"] = str(saved_path)
     session["uploaded_name"] = uploaded_file.filename
@@ -215,36 +241,34 @@ def load_sheets():
     session["observation_sheet"] = profile.processor.detect_observation_sheet(sheet_names)
     session["generate_all_month_sheets"] = False
 
-    flash(
+    message = (
         f"Planilha carregada com sucesso em {profile.label}: "
-        f"{uploaded_file.filename} ({len(sheet_names)} aba(s) encontrada(s)).",
-        "success",
+        f"{uploaded_file.filename} ({len(sheet_names)} aba(s) encontrada(s))."
     )
-    return redirect(url_for("index"))
+    return _api_ok(_session_payload(), message)
 
 
-@app.post("/generate")
-def generate_reports():
+@app.post("/api/generate")
+def api_generate_reports():
     profile = _active_profile()
     excel_path = _session_excel_path()
     if not excel_path:
-        flash("Envie a planilha Excel antes de gerar os relatórios.", "error")
-        return render_template("index.html", **_page_context())
+        return _api_error("Envie a planilha Excel antes de gerar os relatórios.")
 
-    generate_weekly = request.form.get("generate_weekly") == "on"
-    generate_observation = request.form.get("generate_observation") == "on"
-    generate_monthly = request.form.get("generate_monthly") == "on"
-    generate_all_month_sheets = request.form.get("generate_all_month_sheets") == "on"
+    body = request.get_json(silent=True) or {}
+    generate_weekly = bool(body.get("generate_weekly"))
+    generate_observation = bool(body.get("generate_observation"))
+    generate_monthly = bool(body.get("generate_monthly"))
+    generate_all_month_sheets = bool(body.get("generate_all_month_sheets"))
 
     if not any([generate_weekly, generate_observation, generate_monthly, generate_all_month_sheets]):
-        flash("Selecione pelo menos um relatório para gerar.", "error")
-        return render_template("index.html", **_page_context())
+        return _api_error("Selecione pelo menos um relatório para gerar.")
 
     sheet_names = _load_sheet_names(excel_path)
-    observation_sheet = _resolve_sheet_name(request.form.get("observation_sheet", ""), sheet_names)
+    observation_sheet = _resolve_sheet_name(body.get("observation_sheet", ""), sheet_names)
 
     weekly_options = _valid_weekly_options(sheet_names, observation_sheet)
-    weekly_sheet = _resolve_sheet_name(request.form.get("weekly_sheet", ""), weekly_options)
+    weekly_sheet = _resolve_sheet_name(body.get("weekly_sheet", ""), weekly_options)
 
     session["weekly_sheet"] = weekly_sheet
     session["observation_sheet"] = observation_sheet
@@ -273,20 +297,17 @@ def generate_reports():
 
     if generate_weekly:
         if not weekly_sheet:
-            flash("Escolha a aba semanal para gerar o relatório semanal.", "error")
-            return render_template("index.html", **_page_context())
+            return _api_error("Escolha a aba semanal para gerar o relatório semanal.")
 
         weekly_pdf = profile.processor.create_weekly_report(excel_path, weekly_sheet, str(output_folder))
         if not weekly_pdf:
-            flash("Nenhum dado foi encontrado para a aba semanal selecionada.", "error")
-            return render_template("index.html", **_page_context())
+            return _api_error("Nenhum dado foi encontrado para a aba semanal selecionada.")
 
         add_result(f"Relatorio semanal - {profile.label}", weekly_pdf)
 
     if generate_all_month_sheets:
         if not weekly_options:
-            flash("Nenhuma aba semanal foi encontrada para gerar os relatórios do mês.", "error")
-            return render_template("index.html", **_page_context())
+            return _api_error("Nenhuma aba semanal foi encontrada para gerar os relatórios do mês.")
 
         for sheet_name in weekly_options:
             weekly_pdf = profile.processor.create_weekly_report(excel_path, sheet_name, str(output_folder))
@@ -295,20 +316,19 @@ def generate_reports():
 
     if generate_observation:
         if not observation_sheet:
-            flash("Escolha a aba de observacoes para gerar esse relatório.", "error")
-            return render_template("index.html", **_page_context())
+            return _api_error("Escolha a aba de observacoes para gerar esse relatório.")
 
-        observation_pdf = profile.processor.create_observation_report(excel_path, observation_sheet, str(output_folder))
+        observation_pdf = profile.processor.create_observation_report(
+            excel_path, observation_sheet, str(output_folder)
+        )
         if observation_pdf:
             add_result(f"Relatorio de observacoes - {profile.label}", observation_pdf)
         else:
-            flash("Nao foi possivel gerar o relatório de observacoes.", "error")
-            return render_template("index.html", **_page_context())
+            return _api_error("Nao foi possivel gerar o relatório de observacoes.")
 
     if generate_monthly:
         if not weekly_options:
-            flash("Nenhuma aba semanal foi encontrada para gerar o relatório mensal.", "error")
-            return render_template("index.html", **_page_context())
+            return _api_error("Nenhuma aba semanal foi encontrada para gerar o relatório mensal.")
 
         monthly_pdf = profile.processor.create_monthly_report(
             excel_path,
@@ -319,11 +339,10 @@ def generate_reports():
         if monthly_pdf:
             add_result(f"Relatorio mensal - {profile.label}", monthly_pdf)
         else:
-            flash("Nao foi possivel gerar o relatório mensal.", "error")
-            return render_template("index.html", **_page_context())
+            return _api_error("Nao foi possivel gerar o relatório mensal.")
 
-    flash("Relatorios gerados com sucesso.", "success")
-    return render_template("index.html", **_page_context(results=results))
+    payload = _session_payload(results=results)
+    return _api_ok(payload, "Relatorios gerados com sucesso.")
 
 
 @app.get("/downloads/<path:filename>")
@@ -331,26 +350,183 @@ def download_file(filename):
     return send_from_directory(_output_folder(), filename, as_attachment=False)
 
 
+@app.get("/", defaults={"path": ""})
+@app.get("/<path:path>")
+def serve_spa(path):
+    if path.startswith("api/") or path.startswith("downloads/"):
+        return _api_error("Rota não encontrada.", 404)
+
+    if not FRONTEND_DIST.exists():
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "message": (
+                        "Frontend não compilado. Execute: cd frontend && npm install && npm run build"
+                    ),
+                }
+            ),
+            503,
+        )
+
+    requested = FRONTEND_DIST / path
+    if path and requested.is_file():
+        return send_from_directory(FRONTEND_DIST, path)
+
+    return send_from_directory(FRONTEND_DIST, "index.html")
+
+
 @app.after_request
 def add_no_cache_headers(response):
-    if request.path == "/" or response.mimetype in {"text/html", "text/css", "application/javascript"}:
+    if request.path.startswith("/api") or response.mimetype in {
+        "text/html",
+        "text/css",
+        "application/javascript",
+    }:
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
     return response
 
 
-def run_app(host="127.0.0.1", port=5000, open_browser=True):
+def _npm_cmd():
+    return "npm.cmd" if os.name == "nt" else "npm"
+
+
+def _frontend_dir():
+    return BASE_DIR / "frontend"
+
+
+def _frontend_needs_build():
+    dist_index = FRONTEND_DIST / "index.html"
+    if not dist_index.exists():
+        return True
+
+    src_dir = _frontend_dir() / "src"
+    if not src_dir.exists():
+        return False
+
+    dist_mtime = dist_index.stat().st_mtime
+    for path in src_dir.rglob("*"):
+        if path.is_file() and path.stat().st_mtime > dist_mtime:
+            return True
+    return False
+
+
+def _npm_install(frontend_dir):
+    npm = _npm_cmd()
+    print("[*] Instalando dependencias do frontend (npm install)...")
+    subprocess.run([npm, "install"], cwd=frontend_dir, check=True)
+
+
+def _npm_build(frontend_dir):
+    npm = _npm_cmd()
+    print("[*] Compilando frontend React (npm run build)...")
+    subprocess.run([npm, "run", "build"], cwd=frontend_dir, check=True)
+
+
+def _ensure_frontend_built(force=False):
+    frontend_dir = _frontend_dir()
+    package_json = frontend_dir / "package.json"
+    if not package_json.exists():
+        print("[!] Pasta frontend/ nao encontrada.")
+        return False
+
+    npm = _npm_cmd()
+    try:
+        subprocess.run([npm, "--version"], cwd=frontend_dir, check=True, capture_output=True)
+    except (OSError, subprocess.CalledProcessError):
+        print("[!] Node.js/npm nao encontrado. Instale Node.js: https://nodejs.org/")
+        return False
+
+    try:
+        if not (frontend_dir / "node_modules").exists():
+            _npm_install(frontend_dir)
+        elif force:
+            _npm_install(frontend_dir)
+
+        if force or _frontend_needs_build():
+            _npm_build(frontend_dir)
+
+        ready = (FRONTEND_DIST / "index.html").exists()
+        if ready:
+            print("[*] Frontend pronto em frontend/dist")
+        return ready
+    except (OSError, subprocess.CalledProcessError) as exc:
+        print(f"[!] Nao foi possivel preparar o frontend: {exc}")
+        return False
+
+
+def _stop_vite_dev():
+    global _vite_process
+    if _vite_process and _vite_process.poll() is None:
+        _vite_process.terminate()
+        try:
+            _vite_process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            _vite_process.kill()
+    _vite_process = None
+
+
+def _start_vite_dev(host="127.0.0.1"):
+    global _vite_process
+    frontend_dir = _frontend_dir()
+    if not (frontend_dir / "package.json").exists():
+        print("[!] Pasta frontend/ nao encontrada.")
+        return False
+
+    if not (frontend_dir / "node_modules").exists():
+        _npm_install(frontend_dir)
+
+    npm = _npm_cmd()
+    print(f"[*] Iniciando Vite (hot reload) em http://{host}:{VITE_DEV_PORT} ...")
+    _vite_process = subprocess.Popen(
+        [npm, "run", "dev", "--", "--host", host, "--port", str(VITE_DEV_PORT)],
+        cwd=frontend_dir,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    atexit.register(_stop_vite_dev)
+    return True
+
+
+def run_app(host="127.0.0.1", port=5000, open_browser=True, dev_mode=False, rebuild_frontend=False):
     _reset_runtime_state()
     _ensure_output_structure()
 
+    ui_url = f"http://{host}:{port}"
+
+    if dev_mode:
+        if not _start_vite_dev(host):
+            print("[!] Modo dev indisponivel; usando build estatico.")
+            _ensure_frontend_built(force=rebuild_frontend)
+        else:
+            ui_url = f"http://{host}:{VITE_DEV_PORT}"
+    else:
+        _ensure_frontend_built(force=rebuild_frontend)
+
     if open_browser:
-        threading.Timer(1.0, lambda: _open_url(f"http://{host}:{port}")).start()
+        threading.Timer(1.5, lambda: _open_url(ui_url)).start()
 
     print("\n>>> SYSTEM STARTED: InsightFlow Web")
-    print(f"[*] Interface disponível em: http://{host}:{port}")
-    print(f"[*] PDFs gerados em: {_output_folder()}\n")
-    app.run(host=host, port=port, debug=False)
+    print(f"[*] Interface: {ui_url}")
+    print(f"[*] API Flask: http://{host}:{port}")
+    print(f"[*] PDFs gerados em: {_output_folder()}")
+    if dev_mode and _vite_process:
+        print("[*] Modo dev: edite frontend/src e salve — a pagina atualiza sozinha")
+    elif (FRONTEND_DIST / "index.html").exists():
+        print("[*] Frontend React integrado (build servido pelo Flask)")
+    else:
+        print("[!] Frontend ausente — instale Node.js e rode python main.py novamente")
+    if not dev_mode:
+        print("[*] Hot reload: python main.py --dev\n")
+    else:
+        print()
+
+    try:
+        app.run(host=host, port=port, debug=False)
+    finally:
+        _stop_vite_dev()
 
 
 if __name__ == "__main__":

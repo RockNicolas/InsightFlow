@@ -1,0 +1,28 @@
+@use 'variables' as *;
+
+@mixin panel-surface {
+  background: var(--panel);
+  border: 1px solid rgba(217, 227, 240, 0.9);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+@mixin focus-ring {
+  outline: 3px solid rgba($primary, 0.18);
+  outline-offset: 2px;
+}
+
+@mixin hover-lift {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+@mixin label-caps {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}

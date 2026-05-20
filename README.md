@@ -13,10 +13,16 @@ O **InsightFlow** é uma ferramenta desenvolvida em Python para simplificar a ge
 
 ## ▶️ Como usar
 
-1. Execute `python main.py`
-2. Envie a planilha Excel na interface web
-3. Escolha a frota correta, envie o Excel e selecione a aba semanal e a aba de observações
-4. Gere os relatórios desejados
+1. Instale dependências Python: `pip install -r requirements.txt`
+2. Tenha [Node.js](https://nodejs.org/) instalado (para o frontend)
+3. Execute **`python main.py`** — o script instala/compila o React automaticamente e abre o navegador
+4. Envie a planilha Excel, escolha a frota e as abas, e gere os relatórios
+
+| Comando | O que faz |
+|---------|-----------|
+| `python main.py` | Compila o frontend se precisar e abre **http://127.0.0.1:5000** (tudo em um lugar) |
+| `python main.py --dev` | Sobe Flask + Vite com hot reload em **http://127.0.0.1:5173** |
+| `python main.py --rebuild` | Força `npm install` + `npm run build` antes de iniciar |
 
 O `.env` agora é usado apenas para configurações da aplicação, como a pasta de saída `OUTPUT_FOLDER`.
 
@@ -29,6 +35,7 @@ O projeto foi construído utilizando as melhores práticas de programação modu
 - [FPDF](http://www.fpdf.org/): Geração de documentos PDF de forma programática.
 - [Python-Dotenv](https://pypi.org/project/python-dotenv/): Gestão de configurações e segurança de ambiente.
 - [Openpyxl](https://openpyxl.readthedocs.io/): Motor de leitura para ficheiros Excel (.xlsx).
+- [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/): Interface web (pasta `frontend/`).
 
 
 ## 📁 Estrutura do Projeto
@@ -37,7 +44,8 @@ O projeto foi construído utilizando as melhores práticas de programação modu
 InsightFlow/
 │
 ├── main.py              # Inicia a interface web local
-├── web_app.py           # Servidor web principal
+├── web_app.py           # API Flask + serve o build React
+├── frontend/            # Interface React + TypeScript (Vite)
 ├── app/
 │   └── web/
 │       └── server.py    # Ponto de entrada organizado da camada web
@@ -50,8 +58,6 @@ InsightFlow/
 │   ├── reports/          # Geração dos relatórios e PDFs
 │   ├── fleet/            # Perfis, roteamento e organização por frota
 │   └── __init__.py       # Pacote principal dos módulos
-├── templates/           # Estrutura HTML da interface web
-├── static/              # Estilos da interface web
 └── outputs/             # Relatórios gerados, separados por frota
 ```
 
@@ -75,10 +81,12 @@ AUTOR: Nicolas Rock
 
 ## ▶️ How to use
 
-1. Run `python main.py`
-2. Upload the Excel workbook in the web interface
-3. Choose the correct fleet, upload the workbook, and select the weekly and observation sheets
-4. Generate the reports you want
+1. Install Python deps: `pip install -r requirements.txt`
+2. Build the frontend (first time): `cd frontend && npm install && npm run build`
+3. Run `python main.py` and open `http://127.0.0.1:5000`
+4. Upload the Excel workbook, choose fleet and sheets, and generate reports
+
+**Frontend dev:** run `python main.py` in one terminal and `cd frontend && npm run dev` in another (`http://localhost:5173`).
 
 The `.env` file is now used only for application settings, such as the output folder `OUTPUT_FOLDER`.
 
@@ -115,8 +123,7 @@ InsightFlow/
 │ ├── reports/ # Report and PDF generation
 │ ├── fleet/ # Fleet profiles, routing, and fleet packages
 │ └── __init__.py # Main modules package
-├── templates/ # HTML for the web interface
-├── static/ # Styles for the web interface
+├── frontend/ # React + TypeScript web interface (Vite)
 └── outputs/ # Generated reports, split by fleet
 ```
 

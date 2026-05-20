@@ -1,0 +1,46 @@
+@use 'variables' as *;
+
+.maintenance-card {
+  gap: 20px;
+}
+
+.maintenance-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.stat-pill {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 4px;
+
+  .label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+
+  &--machine {
+    border-color: #bfd3f6;
+    background: #f0f6ff;
+  }
+
+  &--truck {
+    border-color: #fed7aa;
+    background: #fff7ed;
+  }
+
+  &--vehicle {
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+  }
+}
+
+.maintenance-panel {
+  margin-top: 4px;
+}

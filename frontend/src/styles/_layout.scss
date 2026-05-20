@@ -1,0 +1,145 @@
+@use 'mixins' as *;
+
+.page {
+  width: min(1480px, calc(100vw - 32px));
+  margin: 28px auto;
+  display: grid;
+  gap: 20px;
+}
+
+.app-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px;
+  @include panel-surface;
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 11px 16px;
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background: #eef4ff;
+    color: var(--primary-dark);
+  }
+
+  &.is-active {
+    background: linear-gradient(135deg, var(--primary), #4f7df0);
+    color: #ffffff;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.2);
+  }
+}
+
+.hero,
+.card {
+  @include panel-surface;
+}
+
+.hero {
+  padding: 26px 30px;
+
+  h1 {
+    margin: 0 0 10px;
+  }
+
+  p {
+    color: var(--muted);
+  }
+
+  &-with-action {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+
+    > div {
+      flex: 1 1 320px;
+    }
+  }
+}
+
+.card {
+  padding: 24px;
+  display: grid;
+  gap: 18px;
+
+  h2 {
+    margin: 0 0 10px;
+  }
+
+  p {
+    color: var(--muted);
+  }
+
+  &-header {
+    display: grid;
+    gap: 6px;
+  }
+}
+
+.eyebrow {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: var(--primary-dark);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 14px;
+}
+
+.messages {
+  display: grid;
+  gap: 10px;
+}
+
+.message {
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  font-weight: 500;
+
+  &.success {
+    background: var(--success-bg);
+    color: var(--success-text);
+    border-color: #bbf7d0;
+  }
+
+  &.error {
+    background: var(--error-bg);
+    color: var(--error-text);
+    border-color: #fecaca;
+  }
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1180px) {
+  .workspace,
+  .form-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    width: min(100vw - 20px, 1480px);
+    margin: 20px auto;
+  }
+}
